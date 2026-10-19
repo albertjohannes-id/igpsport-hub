@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 import requests
 from garminconnect import Garmin
-from garminconnect.exceptions import GarminConnectAuthenticationError, GarminConnectTooManyRequestsError
+from garminconnect.exceptions import GarminConnectAuthenticationError, GarminConnectConnectionError, GarminConnectTooManyRequestsError
 from activities import normalize_activity
 from browser_storage import BrowserStore, Vault, COOKIE_LIMIT
 from security import RequestError, RateLimiter, validate_fit_url, validate_payload

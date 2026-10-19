@@ -70,6 +70,10 @@ class handler(BaseHTTPRequestHandler):
             status, result = 401, {'error': 'Garmin rejected the connection or verification code. Try again.', 'code': 'RECONNECT'}
         except GarminConnectTooManyRequestsError:
             status, result = 429, {'error': 'Garmin is limiting attempts. Please wait.', 'code': 'RATE_LIMITED'}
+        except GarminConnectConnectionError as error:
+            # The pinned client sanitizes this message for logs (no tokens or URLs).
+            print(json.dumps({'event': 'hosted_garmin_connect_failed', 'detail': str(error)}))
+            status, result = 502, {'error': 'The provider could not complete this request. Please try again.', 'code': 'PROVIDER_ERROR'}
         except (ValueError, UnicodeDecodeError):
             status, result = 400, {'error': 'Invalid request or provider response.', 'code': 'INVALID_REQUEST'}
         except Exception as error:
