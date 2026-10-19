@@ -126,6 +126,7 @@ export default function App() {
   const [loginBusy, setLoginBusy] = useState(false);
   const [disconnect, setDisconnect] = useState<Provider>();
   const [confirm, setConfirm] = useState<Activity[]>([]);
+  const [help, setHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [result, setResult] = useState<Transfer>();
@@ -504,57 +505,22 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <section className="howto" aria-labelledby="howto-title">
-                <h2 id="howto-title">How to use this app</h2>
-                <ol className="steps">
-                  <li>
-                    <span className="step-num" aria-hidden="true">
-                      1
-                    </span>
-                    <strong>Connect iGPSPORT</strong>
-                    <p>Sign in with your iGPSPORT account. This stays signed in.</p>
-                  </li>
-                  <li>
-                    <span className="step-num" aria-hidden="true">
-                      2
-                    </span>
-                    <strong>Connect Garmin</strong>
-                    <p>Sign in with your Garmin Connect account. Also just once.</p>
-                  </li>
-                  <li>
-                    <span className="step-num" aria-hidden="true">
-                      3
-                    </span>
-                    <strong>Pick your rides</strong>
-                    <p>
-                      Open the iGPSPORT tab, browse, and tick the rides you want (up to 10 at a
-                      time).
-                    </p>
-                  </li>
-                  <li>
-                    <span className="step-num" aria-hidden="true">
-                      4
-                    </span>
-                    <strong>Send to Garmin</strong>
-                    <p>
-                      Press “Send to Garmin”. Your rides appear in Garmin Connect a moment later.
-                    </p>
-                  </li>
-                </ol>
-                <p className="howto-note">
-                  Nothing syncs automatically. Nothing is deleted. You choose each ride, every time.
-                  No new accounts needed — you only sign in with the accounts you already have.
-                </p>
-              </section>
+              <p className="howto-hint">
+                First time here?
+                <button className="text-button" onClick={() => setHelp(true)}>
+                  See how it works
+                </button>
+              </p>
               <section className="connections-section" aria-labelledby="connections-title">
                 <div className="section-head">
                   <h2 id="connections-title">Your connections</h2>
                   <span>{checking ? 'Checking sessions' : `${connected} of 2 connected`}</span>
                 </div>
                 <div className="connection-grid">
-                  {providers.map((provider) => (
+                  {providers.map((provider, index) => (
                     <article className="connection-card" key={provider}>
                       <div className="connection-top">
+                        <span className="step-chip">Step {index + 1}</span>
                         <ConnectionState session={status?.sessions[provider]} />
                       </div>
                       <h3 className="provider-heading">
@@ -1158,6 +1124,40 @@ export default function App() {
             </AsyncButton>
           </div>
           {busy && <p role="status">{progress}</p>}
+        </Modal>
+      )}
+      {help && (
+        <Modal title="How to use iGPSPORT Hub" onClose={() => setHelp(false)}>
+          <p className="dialog-intro">
+            Four steps. Nothing syncs automatically and nothing is deleted.
+          </p>
+          <ol className="steps-modal">
+            <li>
+              <strong>Connect iGPSPORT</strong> — sign in with your iGPSPORT account. This stays
+              signed in.
+            </li>
+            <li>
+              <strong>Connect Garmin</strong> — sign in with your Garmin Connect account. Also just
+              once.
+            </li>
+            <li>
+              <strong>Pick your rides</strong> — open the iGPSPORT tab, browse, and tick the rides
+              you want (up to 10 at a time).
+            </li>
+            <li>
+              <strong>Send to Garmin</strong> — press “Send to Garmin”. Your rides appear in Garmin
+              Connect a moment later.
+            </li>
+          </ol>
+          <p className="form-note">
+            No new accounts needed — you only sign in with accounts you already have. Sessions are
+            remembered in this browser, so you won’t be asked again next time.
+          </p>
+          <div className="dialog-actions">
+            <button className="primary" onClick={() => setHelp(false)}>
+              Got it
+            </button>
+          </div>
         </Modal>
       )}
       {disconnect && (

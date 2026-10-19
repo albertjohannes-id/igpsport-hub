@@ -271,11 +271,36 @@ main {
   min-height: 44px;
   padding: 10px 4px;
 }
-.howto-note {
-  margin: 18px 0 0;
-  font-size: 0.79rem;
+.howto-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 24px;
+  font-size: 0.83rem;
   color: var(--muted);
+}
+.howto-hint .text-button {
+  min-height: 0;
+  padding: 4px;
+}
+.step-chip {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.steps-modal {
+  margin: 0;
+  padding-inline-start: 22px;
+  display: grid;
+  gap: 14px;
+}
+.steps-modal li {
+  font-size: 0.85rem;
   line-height: 1.6;
+}
+.steps-modal strong {
+  font-weight: 650;
 }
 .section-head {
   display: flex;
@@ -823,9 +848,6 @@ dd small {
   main {
     padding: 36px 28px;
   }
-  .steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .page-head {
     flex-wrap: wrap;
     gap: 16px;
@@ -876,14 +898,6 @@ dd small {
   }
   .tabs .nav {
     padding: 0 14px;
-  }
-  .howto {
-    padding: 18px;
-    margin-bottom: 28px;
-  }
-  .steps {
-    grid-template-columns: 1fr;
-    gap: 10px;
   }
   .page-head {
     margin-bottom: 28px;
