@@ -44,3 +44,13 @@ Back up local private files only to a trusted protected destination. Restoring o
 5. Keep the previous build/source/lockfiles for rollback. Roll back all matching assets and worker code together. Close installed PWA windows to let its lifecycle settle. Do not restore old provider tokens as an asset rollback strategy.
 
 No actual Cloudflare deployment or D1 creation has been performed by this security/PWA update.
+
+## Hosted Vercel test
+
+Commits to `main` deploy automatically through the connected Vercel project. `vercel.json` builds the Vite frontend and serves `api/index.py` with the pinned root `requirements.txt`. `requirements.txt` must stay aligned with `requirements-trial.lock.txt` and must remain committed, or the Python function cannot build.
+
+Required project environment variables (project settings, never committed): `SESSION_KEY`, a 32-byte base64 key used to seal provider-session cookies and transfer receipts, and `APP_ORIGINS`, the comma-separated https origins allowed to call the API. The platform supplies `VERCEL_URL`. Rotate `SESSION_KEY` instead of publishing it; rotating disconnects saved browser sessions.
+
+In this mode provider sessions live only in the browser's encrypted cookies, and transfer receipts and history stay in browser localStorage; the server keeps nothing per account. Login (5/300s) and transfer/check (20/300s) limits are per function instance, not a distributed quota. Deploy the hosted test only after the standard checks, and validate capabilities with one real account login and one user-confirmed transfer before relying on it.
+
+No actual hosted production rollout has been released by this update.

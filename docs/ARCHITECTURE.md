@@ -8,6 +8,8 @@
 
 **Cloudflare preview:** browser → Workers static assets; `/api/*` → `worker/index.ts`. This Worker reports unavailable connections and rejects account mutations. It has no credentials, D1 database, bridge to localhost or live provider integration. Static responses use `public/_headers`; Worker responses use `worker/security.ts`. Keep these policies aligned and verify them with production tests.
 
+**Hosted Vercel test:** browser → static `dist` on Vercel → `/api/*` → `api/index.py` → `backend/hosted_api.py`. It supports provider connections, activity browsing and single-ride transfers with the same conservative verification as the local app. Provider sessions live only in browser-held encrypted cookies; the encrypted transfer receipt replaces server-side history, so the browser can re-verify an uncertain upload later. Rate limits are per-instance, not a distributed quota. Transfer is enabled only after `capabilities.transfer` reports true from a real deployment test.
+
 ## Source responsibilities
 
 - `src/App.tsx`: Home/provider navigation, activity selection, native dialogs, login/MFA, explicit transfer confirmation and result state.

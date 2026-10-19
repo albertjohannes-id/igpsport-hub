@@ -25,6 +25,7 @@ A fresh checkout needs Node/npm, Python 3.12+, `npm ci`, a `.venv` with `pip ins
 - Local: provider sessions, login/MFA UI, normalized lists/details, explicit transfer confirmation, duplicate matching and delayed-result verification.
 - PWA: manifest, install icons, standalone display, safe offline notice. The service worker never caches API responses or queues uploads. Recent transfer history is stored in browser localStorage.
 - Cloudflare: deployable interface preview, restrictive security headers, disabled account operations. **Cloud provider integration is not implemented. V1 uses client-held encrypted sessions and browser-local history; no D1 is needed.**
+- Hosted (Vercel Python): connection, activity browsing and explicit single-ride transfer test with the same client-held encrypted sessions and browser-local receipts. See [hosted operations](docs/OPERATIONS.md).
 - Direction: iGPSPORT → Garmin only. Garmin → iGPSPORT is not supported.
 
 See [browser storage and testing](docs/BROWSER-STORAGE.md) for persistence limits and the local test steps.
@@ -35,6 +36,7 @@ See [browser storage and testing](docs/BROWSER-STORAGE.md) for persistence limit
 | ------------------- | ------------------------------------------------------------- |
 | `src/`              | React/TypeScript frontend and CSS                             |
 | `backend/`          | Python provider adapters, local HTTP API, CLI and diagnostics |
+| `api/`              | Vercel Python function entry for the hosted test              |
 | `worker/`           | Cloudflare preview and response security headers              |
 | `public/`           | PWA manifest, service worker, offline page and local icons    |
 | `scripts/`          | Launch, test and reproducible icon-generation helpers         |

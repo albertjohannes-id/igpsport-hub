@@ -364,7 +364,11 @@ export default function App() {
         </button>
         <div className="top-actions">
           <span className="environment">
-            {status?.mode === 'cloud-preview' ? 'Cloud preview' : 'Local workspace'}
+            {status?.mode === 'hosted-test'
+              ? 'Hosted test'
+              : status?.mode === 'cloud-preview'
+                ? 'Cloud preview'
+                : 'Local workspace'}
           </span>
           <button
             className="icon-button theme"
@@ -405,6 +409,11 @@ export default function App() {
           </div>
         </aside>
         <main id="main" className={tab === 'home' ? '' : 'activity-page'}>
+          {status?.mode === 'hosted-test' && (
+            <div className="banner">
+              Hosted test. Connect both providers, browse rides and transfer selected activities.
+            </div>
+          )}
           {status?.mode === 'cloud-preview' && (
             <div className="banner">
               Interface preview. Account connections and transfers are available in the local app;

@@ -34,7 +34,7 @@ export type Transfer = {
   receipt?: string;
 };
 export type Status = {
-  mode: 'local' | 'cloud-preview';
+  mode: 'local' | 'cloud-preview' | 'hosted-test';
   capabilities: { login: boolean; transfer: boolean };
   sessions: Record<Provider, Session>;
   history: Transfer[];
@@ -69,7 +69,7 @@ async function request<T>(
   });
   if (!response.headers.get('content-type')?.includes('application/json')) {
     throw new ApiError(
-      'The local activity service is unavailable. Open Start Web.command and try again.',
+      'The activity service is unavailable. Please try again shortly.',
       response.status,
     );
   }

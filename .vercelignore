@@ -1,0 +1,17 @@
+.git
+.local-auth
+logs
+upstream-trial
+.venv
+node_modules
+.wrangler
+dist
+test-results
+playwright-report
+experiments
+**/__pycache__
+.env*
+.dev.vars*
+*.fit
+*.gpx
+*.tcx
