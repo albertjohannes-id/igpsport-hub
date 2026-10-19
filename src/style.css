@@ -271,6 +271,12 @@ main {
   min-height: 44px;
   padding: 10px 4px;
 }
+.howto-note {
+  margin: 18px 0 0;
+  font-size: 0.79rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -817,6 +823,9 @@ dd small {
   main {
     padding: 36px 28px;
   }
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .page-head {
     flex-wrap: wrap;
     gap: 16px;
@@ -867,6 +876,14 @@ dd small {
   }
   .tabs .nav {
     padding: 0 14px;
+  }
+  .howto {
+    padding: 18px;
+    margin-bottom: 28px;
+  }
+  .steps {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
   .page-head {
     margin-bottom: 28px;

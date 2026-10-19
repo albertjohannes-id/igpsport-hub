@@ -366,14 +366,7 @@ export default function App() {
           </span>
         </button>
         <div className="top-actions">
-          <span className="environment">
-            {status?.mode === 'hosted-test'
-              ? 'Hosted test'
-              : status?.mode === 'cloud-preview'
-                ? 'Cloud preview'
-                : 'Local workspace'}{' '}
-            · v{__APP_VERSION__}
-          </span>
+          <span className="environment">v{__APP_VERSION__}</span>
           <button
             className="icon-button theme"
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
@@ -406,11 +399,6 @@ export default function App() {
               </button>
             ))}
           </nav>
-          {status?.mode === 'hosted-test' && (
-            <div className="banner">
-              Hosted test. Connect both providers, browse rides and transfer selected activities.
-            </div>
-          )}
           {status?.mode === 'cloud-preview' && (
             <div className="banner">
               Interface preview. Account connections and transfers are available in the local app;
@@ -516,6 +504,48 @@ export default function App() {
                   </button>
                 </div>
               )}
+              <section className="howto" aria-labelledby="howto-title">
+                <h2 id="howto-title">How to use this app</h2>
+                <ol className="steps">
+                  <li>
+                    <span className="step-num" aria-hidden="true">
+                      1
+                    </span>
+                    <strong>Connect iGPSPORT</strong>
+                    <p>Sign in with your iGPSPORT account. This stays signed in.</p>
+                  </li>
+                  <li>
+                    <span className="step-num" aria-hidden="true">
+                      2
+                    </span>
+                    <strong>Connect Garmin</strong>
+                    <p>Sign in with your Garmin Connect account. Also just once.</p>
+                  </li>
+                  <li>
+                    <span className="step-num" aria-hidden="true">
+                      3
+                    </span>
+                    <strong>Pick your rides</strong>
+                    <p>
+                      Open the iGPSPORT tab, browse, and tick the rides you want (up to 10 at a
+                      time).
+                    </p>
+                  </li>
+                  <li>
+                    <span className="step-num" aria-hidden="true">
+                      4
+                    </span>
+                    <strong>Send to Garmin</strong>
+                    <p>
+                      Press “Send to Garmin”. Your rides appear in Garmin Connect a moment later.
+                    </p>
+                  </li>
+                </ol>
+                <p className="howto-note">
+                  Nothing syncs automatically. Nothing is deleted. You choose each ride, every time.
+                  No new accounts needed — you only sign in with the accounts you already have.
+                </p>
+              </section>
               <section className="connections-section" aria-labelledby="connections-title">
                 <div className="section-head">
                   <h2 id="connections-title">Your connections</h2>
@@ -687,34 +717,37 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  {tab === 'igpsport' && status && !checking && (
-                    <div className="callout" role="status">
-                      <div>
-                        <strong>
+                  {tab === 'igpsport' &&
+                    status &&
+                    !checking &&
+                    status.sessions.garmin.state !== 'connected' && (
+                      <div className="callout" role="status">
+                        <div>
+                          <strong>
+                            {status.sessions.garmin.state === 'error'
+                              ? 'Garmin connection needs a check.'
+                              : 'Garmin Connect isn’t connected yet.'}
+                          </strong>
+                          <p>
+                            Connect Garmin Connect before sending rides — that’s where your
+                            selection ends up.
+                          </p>
+                        </div>
+                        <button
+                          className="primary"
+                          disabled={status.sessions.garmin.state === 'unavailable'}
+                          onClick={() =>
+                            status.sessions.garmin.state === 'error'
+                              ? void refreshStatus()
+                              : openLogin('garmin')
+                          }
+                        >
                           {status.sessions.garmin.state === 'error'
-                            ? 'Garmin connection needs a check.'
-                            : 'Garmin Connect isn’t connected yet.'}
-                        </strong>
-                        <p>
-                          Connect Garmin Connect before sending rides — that’s where your selection
-                          ends up.
-                        </p>
+                            ? 'Check connection'
+                            : 'Connect Garmin Connect'}
+                        </button>
                       </div>
-                      <button
-                        className="primary"
-                        disabled={status.sessions.garmin.state === 'unavailable'}
-                        onClick={() =>
-                          status.sessions.garmin.state === 'error'
-                            ? void refreshStatus()
-                            : openLogin('garmin')
-                        }
-                      >
-                        {status.sessions.garmin.state === 'error'
-                          ? 'Check connection'
-                          : 'Connect Garmin Connect'}
-                      </button>
-                    </div>
-                  )}
+                    )}
                   <div className="toolbar">
                     <label className="search">
                       <span aria-hidden="true">⌕</span>
