@@ -26,6 +26,8 @@ IGPS = 'https://prod.en.igpsport.com/service'
 # An additional per-instance guard for the protected test deployment, not a distributed quota.
 limiter = RateLimiter()
 MFA_FIELDS = ('_mfa_method', '_mfa_login_params', '_mfa_post_headers', '_mfa_service_url', '_mfa_flow')
+# One low-volume strategy per attempt; escalating cascades trigger Garmin's Cloudflare ban.
+GARMIN_SKIP_STRATEGIES = frozenset({'mobile+cffi', 'mobile+requests', 'portal+cffi', 'portal+requests'})
 
 
 def vault_from_environment():
@@ -160,6 +162,15 @@ class HostedService:
         self.clear_mfa()
         return client, state['account']
 
+    def arm_garmin_cooldown(self, detail):
+        lowered = detail.lower()
+        if 'cloudflare' in lowered or 'captcha' in lowered:
+            limiter.block('garmin-login', 1800)
+        elif '429' in detail or 'rate limited' in lowered or 'limiting' in lowered:
+            limiter.block('garmin-login', 600)
+        else:
+            limiter.block('garmin-login', 300)
+
     def login(self, provider, data):
         if provider == 'igpsport':
             if 'code' in data:
@@ -170,14 +181,25 @@ class HostedService:
                 raise RequestError('iGPSPORT did not return a usable session.', 502, 'INVALID_SESSION')
             self.store.set(provider, {k: token.get(k) for k in ('access_token', 'refresh_token', 'expires_in')}, account)
         else:
-            if 'code' in data:
+            if data.get('code'):
                 client, account = self.resume_mfa(data['code'])
             else:
+                blocked = limiter.blocked('garmin-login')
+                if blocked > 0:
+                    minutes = max(1, -(-int(blocked) // 60))
+                    raise RequestError('Garmin is still blocking new sign-ins. Try again in about ' + str(minutes) + ' minutes.', 429, 'GARMIN_COOLDOWN')
                 self.clear_mfa()
                 account = self.store.vault.identity(provider + ':' + data['username'].strip().casefold())
                 client = Garmin(data['username'].strip(), data['password'], retry_attempts=1, return_on_mfa=True)
+                client.client.skip_strategies = GARMIN_SKIP_STRATEGIES
                 try:
                     result = client.login()
+                except GarminConnectConnectionError as error:
+                    self.arm_garmin_cooldown(str(error))
+                    raise RequestError('Garmin blocked this sign-in attempt. Wait about 30 minutes and try once more.', 429, 'GARMIN_BLOCKED') from None
+                except GarminConnectTooManyRequestsError as error:
+                    self.arm_garmin_cooldown(str(error))
+                    raise RequestError('Garmin is limiting sign-in attempts right now. Wait about 10 minutes and try once.', 429, 'RATE_LIMITED') from None
                 finally:
                     client.password = None
                 if result and result[0] == 'needs_mfa':

@@ -36,6 +36,7 @@ def validate_payload(action, data):
 class RateLimiter:
     def __init__(self):
         self.events = defaultdict(deque)
+        self.unlock_at = {}
         self.lock = threading.Lock()
 
     def check(self, key, limit, window):
@@ -47,6 +48,20 @@ class RateLimiter:
             if len(queue) >= limit:
                 raise RequestError('Too many requests. Wait before trying again.', 429, 'RATE_LIMITED')
             queue.append(now)
+
+    def block(self, key, seconds):
+        until = time.monotonic() + seconds
+        with self.lock:
+            self.unlock_at[key] = max(self.unlock_at.get(key, 0), until)
+
+    def blocked(self, key):
+        now = time.monotonic()
+        with self.lock:
+            remaining = self.unlock_at.get(key, 0) - now
+            if remaining <= 0:
+                self.unlock_at.pop(key, None)
+                return 0
+            return remaining
 
 
 # Exact observed iGPSPORT storage bucket; never allow all Aliyun customer buckets.

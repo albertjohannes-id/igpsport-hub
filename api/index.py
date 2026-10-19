@@ -43,7 +43,8 @@ class handler(BaseHTTPRequestHandler):
             identity = vault.identity(ip)
             limiter.check('request:' + identity, 120, 60)
             if path.endswith('/login'):
-                limiter.check('login:' + identity, 5, 300)
+                # One burst equals several provider requests; keep the budget small.
+                limiter.check('login:' + identity, 3, 600)
             if path.endswith('/transfer') or path.endswith('/check'):
                 # Transfer and check contact both providers repeatedly; cap harder than browsing.
                 limiter.check('transfer:' + identity, 20, 300)

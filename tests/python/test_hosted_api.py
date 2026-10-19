@@ -8,9 +8,10 @@ from unittest.mock import Mock, patch
 from types import SimpleNamespace
 import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import hosted_api
 from browser_storage import BrowserStore, Vault
-from hosted_api import HostedService, dispatch, vault_from_environment
-from security import RequestError
+from hosted_api import HostedService, GARMIN_SKIP_STRATEGIES, dispatch, vault_from_environment
+from security import RateLimiter, RequestError
 
 SUMMARY = {'start': datetime(2026, 1, 1, 7, 30, tzinfo=timezone.utc), 'duration': 3600.0, 'distance': 50000.0}
 SUMMARY_FROZEN = {'start': '2026-01-01T07:30:00+00:00', 'duration': 3600.0, 'distance': 50000.0}
@@ -90,6 +91,39 @@ class HostedTests(unittest.TestCase):
             with self.assertRaises(RequestError):
                 dispatch(self.service, '/api/garmin/login', 'POST', {'username': 'x'}, {})
         login.assert_not_called()
+
+    def test_garmin_challenge_arms_cooldown_and_refuses_immediate_retry(self):
+        from garminconnect.exceptions import GarminConnectConnectionError
+        client = Mock()
+        client.client = SimpleNamespace(skip_strategies=set())
+        client.login.side_effect = GarminConnectConnectionError(
+            'Login failed: All login strategies exhausted: Portal login: HTTP 403 (Cloudflare bot challenge)')
+        with patch.object(hosted_api, 'limiter', RateLimiter()), patch('hosted_api.Garmin', return_value=client) as garmin:
+            with self.assertRaises(RequestError) as caught:
+                self.service.login('garmin', {'username': 'fixture', 'password': 'fixture'})
+            self.assertEqual(caught.exception.status, 429)
+            self.assertEqual(caught.exception.code, 'GARMIN_BLOCKED')
+            self.assertEqual(client.client.skip_strategies, GARMIN_SKIP_STRATEGIES)
+            self.assertGreater(hosted_api.limiter.blocked('garmin-login'), 1500)
+            self.assertNotIn('password', client.login.call_args.args)
+            with self.assertRaises(RequestError) as caught:
+                self.service.login('garmin', {'username': 'fixture', 'password': 'fixture'})
+            self.assertEqual(caught.exception.code, 'GARMIN_COOLDOWN')
+            garmin.assert_called_once()
+
+    def test_garmin_rate_limit_arms_shorter_cooldown(self):
+        from garminconnect.exceptions import GarminConnectTooManyRequestsError
+        client = Mock()
+        client.client = SimpleNamespace(skip_strategies=set())
+        client.login.side_effect = GarminConnectTooManyRequestsError(
+            'Mobile login returned 429 — rate limited or blocked by Garmin')
+        with patch.object(hosted_api, 'limiter', RateLimiter()), patch('hosted_api.Garmin', return_value=client):
+            with self.assertRaises(RequestError) as caught:
+                self.service.login('garmin', {'username': 'fixture', 'password': 'fixture'})
+            self.assertEqual(caught.exception.code, 'RATE_LIMITED')
+            remaining = hosted_api.limiter.blocked('garmin-login')
+        self.assertGreater(remaining, 540)
+        self.assertLessEqual(remaining, 600)
 
     def existing_candidate(self, identifier):
         return {'activityId': identifier, 'startTimeGMT': '2026-01-01T07:30:00.000Z',
