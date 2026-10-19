@@ -167,39 +167,29 @@ small {
   font-size: 1.45rem;
 }
 .shell {
-  display: grid;
-  grid-template-columns: 218px minmax(0, 1fr);
-  max-width: 1440px;
   margin: auto;
   min-height: calc(100vh - 88px);
 }
-aside {
-  padding: 38px 20px;
-  border-right: 1px solid var(--line);
+.tabs {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 30px;
 }
-.nav-label {
-  font-size: 0.72rem;
-  color: var(--muted);
-  padding: 0 14px;
-  margin-bottom: 17px;
+.tabs .nav {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 18px;
 }
-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.tabs .nav .dot {
+  margin-left: 2px;
 }
 .nav {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 50px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  padding: 0 14px;
-  text-align: left;
+  gap: 10px;
+  min-height: 44px;
+  background: var(--surface);
   font-size: 0.87rem;
 }
 .nav.active {
@@ -212,30 +202,14 @@ nav {
 }
 .nav-symbol {
   font-size: 1rem;
-  width: 24px;
   font-weight: 650;
 }
-.nav .dot {
-  margin-left: auto;
+main {
+  padding: 38px 5.5% 24px;
+  min-width: 0;
 }
-.sidebar-note {
-  margin-top: auto;
-  padding: 100px 14px 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-.sidebar-note p {
-  font-weight: 400;
-  color: var(--muted);
-  font-size: 0.75rem;
-  margin-top: 10px;
-}
-.small-rule {
-  display: block;
-  width: 24px;
-  height: 2px;
-  background: var(--accent);
-  margin-bottom: 16px;
+.tabs + .page-head {
+  margin-top: 4px;
 }
 main {
   padding: 52px 5.5% 24px;
@@ -382,6 +356,12 @@ main {
 .error > .dot,
 .dot.error {
   background: var(--error);
+}
+.dot.disconnected {
+  background: #c98a2b;
+}
+.status.disconnected {
+  color: var(--text);
 }
 .history-section {
   margin-top: 42px;
@@ -634,6 +614,34 @@ footer {
 .banner .text-button {
   margin-left: auto;
 }
+.callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border-radius: 9px;
+  border: 1px solid var(--accent);
+  background: var(--tint);
+  margin-bottom: 22px;
+}
+.callout strong {
+  font-size: 0.94rem;
+}
+.callout p {
+  margin: 6px 0 0;
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+.callout > button {
+  flex-shrink: 0;
+}
+@media (max-width: 760px) {
+  .callout > button {
+    width: 100%;
+  }
+}
 .alert {
   background: var(--error-bg);
   color: var(--error);
@@ -726,6 +734,24 @@ form input {
   color: var(--text);
   font-size: 1rem;
 }
+.password-field {
+  display: flex;
+  gap: 4px;
+}
+.password-field input {
+  flex: 1;
+  min-width: 0;
+}
+.password-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 44px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
 .form-note {
   font-size: 0.75rem;
   color: var(--muted);
@@ -788,12 +814,6 @@ dd small {
   }
 }
 @media (max-width: 1100px) {
-  .shell {
-    grid-template-columns: 180px minmax(0, 1fr);
-  }
-  aside {
-    padding-inline: 12px;
-  }
   main {
     padding: 36px 28px;
   }
@@ -838,53 +858,15 @@ dd small {
   .environment {
     display: none;
   }
-  .shell {
-    display: block;
-  }
-  .nav-label,
-  .sidebar-note {
-    display: none;
-  }
-  aside {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 3;
-    background: var(--surface);
-    border-top: 1px solid var(--line);
-    border-right: 0;
-    padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
-  }
-  nav {
-    flex-direction: row;
-    justify-content: space-around;
-    gap: 6px;
-  }
-  .nav {
-    flex: 1;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    min-height: 56px;
-    font-size: 0.67rem;
-    position: relative;
-    padding: 5px;
-  }
-  .nav-symbol {
-    width: auto;
-    font-size: 1.1rem;
-  }
-  .nav .dot {
-    position: absolute;
-    right: 20%;
-    top: 10px;
-  }
-  .nav.active {
-    background: var(--tint);
-  }
   main {
-    padding: 30px 20px 120px;
+    padding: 30px 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  .tabs {
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .tabs .nav {
+    padding: 0 14px;
   }
   .page-head {
     margin-bottom: 28px;
@@ -1013,7 +995,7 @@ dd small {
     flex-shrink: 0;
   }
   .selection-bar {
-    bottom: 80px;
+    bottom: 20px;
     gap: 10px;
     padding: 12px;
     flex-wrap: wrap;
@@ -1201,7 +1183,7 @@ button .spinner {
 }
 @media (max-width: 760px) {
   main.activity-page {
-    padding: 20px 16px 110px;
+    padding: 20px 16px 60px;
   }
   .activity-page .page-head {
     flex-wrap: nowrap;

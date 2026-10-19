@@ -119,6 +119,7 @@ export default function App() {
   const [login, setLogin] = useState<Provider>();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
   const [mfa, setMfa] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -230,6 +231,7 @@ export default function App() {
     setLogin(provider);
     setUsername('');
     setPassword('');
+    setShowPassword(false);
     setCode('');
     setMfa(false);
     setLoginError('');
@@ -350,6 +352,7 @@ export default function App() {
   const connected = status
     ? providers.filter((p) => status.sessions[p].state === 'connected').length
     : 0;
+  const missing = status ? providers.filter((p) => status.sessions[p].state !== 'connected') : [];
 
   return (
     <div className="app">
@@ -368,7 +371,8 @@ export default function App() {
               ? 'Hosted test'
               : status?.mode === 'cloud-preview'
                 ? 'Cloud preview'
-                : 'Local workspace'}
+                : 'Local workspace'}{' '}
+            · v{__APP_VERSION__}
           </span>
           <button
             className="icon-button theme"
@@ -380,9 +384,8 @@ export default function App() {
         </div>
       </header>
       <div className="shell">
-        <aside>
-          <div className="nav-label">Your workspace</div>
-          <nav aria-label="Main navigation">
+        <main id="main" className={tab === 'home' ? '' : 'activity-page'}>
+          <nav className="tabs" aria-label="Main navigation">
             {(['home', ...providers] as const).map((item) => (
               <button
                 key={item}
@@ -403,12 +406,6 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <div className="sidebar-note">
-            <span className="small-rule" />
-            Your rides. Your choice.<p>Transfer only the activities you select.</p>
-          </div>
-        </aside>
-        <main id="main" className={tab === 'home' ? '' : 'activity-page'}>
           {status?.mode === 'hosted-test' && (
             <div className="banner">
               Hosted test. Connect both providers, browse rides and transfer selected activities.
@@ -488,6 +485,37 @@ export default function App() {
                   {checking ? 'Checking…' : 'Check connections'}
                 </AsyncButton>
               </div>
+              {status && !checking && missing.length > 0 && (
+                <div className="callout" role="status">
+                  <div>
+                    <strong>
+                      {missing.length === 2
+                        ? 'Connect both accounts to transfer rides.'
+                        : `Connect ${names[missing[0]]} to keep transferring.`}
+                    </strong>
+                    <p>
+                      {missing.length === 2
+                        ? 'Sign in with your existing accounts — no iGPSPORT Hub registration needed.'
+                        : `${names[missing[0]]} is the ${
+                            missing[0] === 'igpsport' ? 'ride source' : 'transfer destination'
+                          }. ${status.sessions[missing[0]].message || ''}`}
+                    </p>
+                  </div>
+                  <button
+                    className="primary"
+                    disabled={status.sessions[missing[0]].state === 'unavailable'}
+                    onClick={() =>
+                      status.sessions[missing[0]].state === 'error'
+                        ? void refreshStatus()
+                        : openLogin(missing[0])
+                    }
+                  >
+                    {status.sessions[missing[0]].state === 'error'
+                      ? 'Retry connection'
+                      : `Connect ${names[missing[0]]}`}
+                  </button>
+                </div>
+              )}
               <section className="connections-section" aria-labelledby="connections-title">
                 <div className="section-head">
                   <h2 id="connections-title">Your connections</h2>
@@ -604,7 +632,7 @@ export default function App() {
               </section>
               <footer>
                 <span>No automatic syncing. You’re in control.</span>
-                <span>Unofficial integration</span>
+                <span>iGPSPORT Hub v{__APP_VERSION__} · Unofficial integration</span>
               </footer>
             </>
           ) : (
@@ -659,6 +687,34 @@ export default function App() {
                 </div>
               ) : (
                 <>
+                  {tab === 'igpsport' && status && !checking && (
+                    <div className="callout" role="status">
+                      <div>
+                        <strong>
+                          {status.sessions.garmin.state === 'error'
+                            ? 'Garmin connection needs a check.'
+                            : 'Garmin Connect isn’t connected yet.'}
+                        </strong>
+                        <p>
+                          Connect Garmin Connect before sending rides — that’s where your selection
+                          ends up.
+                        </p>
+                      </div>
+                      <button
+                        className="primary"
+                        disabled={status.sessions.garmin.state === 'unavailable'}
+                        onClick={() =>
+                          status.sessions.garmin.state === 'error'
+                            ? void refreshStatus()
+                            : openLogin('garmin')
+                        }
+                      >
+                        {status.sessions.garmin.state === 'error'
+                          ? 'Check connection'
+                          : 'Connect Garmin Connect'}
+                      </button>
+                    </div>
+                  )}
                   <div className="toolbar">
                     <label className="search">
                       <span aria-hidden="true">⌕</span>
@@ -885,13 +941,24 @@ export default function App() {
                 </label>
                 <label>
                   Password
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <span className="password-field">
+                    <input
+                      aria-label="Password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </span>
                 </label>
               </>
             )}
