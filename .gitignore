@@ -41,3 +41,6 @@ garmin_session/
 .idea/
 .vscode/
 *.swp
+
+# Vercel project links and local deployment metadata
+.vercel/
