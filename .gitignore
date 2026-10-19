@@ -1,0 +1,43 @@
+# Dependencies and isolated upstream source
+node_modules/
+.venv/
+venv/
+upstream-trial/
+
+# Build, test and tool output
+dist/
+.wrangler/
+test-results/
+playwright-report/
+blob-report/
+coverage/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.tsbuildinfo
+
+# Credentials, sessions and private diagnostics
+.env*
+!.env.example
+.dev.vars*
+.local-auth/
+logs/
+*.log
+*tokens*.json
+garmin_session/
+*.pem
+*.key
+
+# Personal activity exports
+*.[fF][iI][tT]
+*.[gG][pP][xX]
+*.[tT][cC][xX]
+
+# Local OS/editor files
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp

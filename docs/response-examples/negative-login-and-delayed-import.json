@@ -1,0 +1,244 @@
+{
+  "note": "Observed event sequence with synthetic activity/upload IDs. Exact timestamps, source-log identifier and personal ride measurements are omitted for publication. Status codes and response structure retain the observed behavior.",
+  "events": [
+    {
+      "sequence": 1,
+      "operation": "igpsport.http",
+      "elapsed_ms": 787.3,
+      "http_status": 403,
+      "error_type": null,
+      "result_type": "Response",
+      "response": {
+        "code": 1002,
+        "message": "[redacted str]",
+        "omitted_field_count": 0
+      }
+    },
+    {
+      "sequence": 2,
+      "operation": "igpsport.login",
+      "elapsed_ms": 791.0,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "bool",
+      "response": null,
+      "returned_boolean": false
+    },
+    {
+      "sequence": 3,
+      "operation": "igpsport.http",
+      "elapsed_ms": 725.6,
+      "http_status": 200,
+      "error_type": null,
+      "result_type": "Response",
+      "response": {
+        "code": 0,
+        "message": "[redacted str]",
+        "data": {
+          "omitted_field_count": 6
+        },
+        "omitted_field_count": 0
+      }
+    },
+    {
+      "sequence": 4,
+      "operation": "igpsport.login",
+      "elapsed_ms": 727.2,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "bool",
+      "response": null,
+      "returned_boolean": true
+    },
+    {
+      "sequence": 11,
+      "operation": "garmin.login",
+      "elapsed_ms": 22956.8,
+      "http_status": null,
+      "error_type": "GarminConnectAuthenticationError",
+      "result_type": "NoneType",
+      "response": null
+    },
+    {
+      "sequence": 15,
+      "operation": "garmin.login",
+      "elapsed_ms": 10893.4,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "tuple",
+      "response": null
+    },
+    {
+      "sequence": 17,
+      "operation": "garmin.get_activities",
+      "elapsed_ms": 312.3,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "list",
+      "response": [
+        {
+          "activityId": 1000,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 81
+        },
+        {
+          "activityId": 1001,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1002,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1003,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 88
+        },
+        {
+          "activityId": 1004,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 75
+        }
+      ]
+    },
+    {
+      "sequence": 20,
+      "operation": "garmin.get_activities_by_date",
+      "elapsed_ms": 577.3,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "list",
+      "response": [
+        {
+          "activityId": 1000,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 81
+        },
+        {
+          "activityId": 1001,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1002,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1003,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 88
+        }
+      ]
+    },
+    {
+      "sequence": 21,
+      "operation": "garmin.http",
+      "elapsed_ms": 291.2,
+      "http_status": 202,
+      "error_type": null,
+      "result_type": "Response",
+      "response": {
+        "detailedImportResult": {
+          "uploadId": 1005,
+          "fileSize": 6819,
+          "processingTime": 17,
+          "successes": [],
+          "failures": [],
+          "omitted_field_count": 6
+        },
+        "omitted_field_count": 0
+      }
+    },
+    {
+      "sequence": 22,
+      "operation": "garmin.upload_activity",
+      "elapsed_ms": 294.1,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "dict",
+      "response": {
+        "detailedImportResult": {
+          "uploadId": 1005,
+          "fileSize": 6819,
+          "processingTime": 17,
+          "successes": [],
+          "failures": [],
+          "omitted_field_count": 6
+        },
+        "omitted_field_count": 0
+      }
+    },
+    {
+      "sequence": 25,
+      "operation": "garmin.get_activities_by_date",
+      "elapsed_ms": 554.1,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "list",
+      "response": [
+        {
+          "activityId": 1000,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 81
+        },
+        {
+          "activityId": 1001,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1002,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1003,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 88
+        }
+      ]
+    },
+    {
+      "sequence": 28,
+      "operation": "garmin.get_activities_by_date",
+      "elapsed_ms": 558.1,
+      "http_status": null,
+      "error_type": null,
+      "result_type": "list",
+      "response": [
+        {
+          "activityId": 1000,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 81
+        },
+        {
+          "activityId": 1006,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 81
+        },
+        {
+          "activityId": 1001,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1002,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 106
+        },
+        {
+          "activityId": 1003,
+          "activityName": "[redacted str]",
+          "omitted_field_count": 88
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "verification": "confirmed",
+    "activityId": "1006"
+  }
+}

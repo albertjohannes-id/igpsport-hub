@@ -1,0 +1,62 @@
+{
+  "operation": "igpsport-list",
+  "response_shape": {
+    "pageNo": "int",
+    "pageSize": "int",
+    "totalPage": "int",
+    "totalRows": "int",
+    "rows": {
+      "type": "list",
+      "length": 2,
+      "sample_shapes": [
+        {
+          "id": "str",
+          "rideId": "int",
+          "exerciseType": "int",
+          "title": "str",
+          "startTime": "str",
+          "rideDistance": "float",
+          "totalMovingTime": "float",
+          "avgSpeed": "float",
+          "dataStatus": "int",
+          "errorType": "int",
+          "analysisStatus": "int",
+          "label": "int",
+          "isOpen": "int",
+          "unRead": "bool",
+          "icon": "str",
+          "totalAscent": "int",
+          "recordTime": "int",
+          "isCollected": "bool",
+          "product": "int",
+          "productName": "str",
+          "deviceIcon": "str"
+        },
+        {
+          "id": "str",
+          "rideId": "int",
+          "exerciseType": "int",
+          "title": "str",
+          "startTime": "str",
+          "rideDistance": "float",
+          "totalMovingTime": "float",
+          "avgSpeed": "float",
+          "dataStatus": "int",
+          "errorType": "int",
+          "analysisStatus": "int",
+          "label": "int",
+          "isOpen": "int",
+          "unRead": "bool",
+          "icon": "str",
+          "totalAscent": "int",
+          "recordTime": "int",
+          "isCollected": "bool",
+          "product": "int",
+          "productName": "str",
+          "deviceIcon": "str"
+        }
+      ]
+    }
+  },
+  "note": "Observed field/type schema, not raw response values. Bounded sample from 2026-10-17 local trial."
+}

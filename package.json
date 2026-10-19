@@ -1,0 +1,41 @@
+{
+  "name": "igpsport-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "api": ".venv/bin/python backend/web_api.py",
+    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && vite build",
+    "dev:all": "node scripts/dev.mjs",
+    "test:ui": "playwright test",
+    "preview": "wrangler dev",
+    "cf:types": "wrangler types",
+    "cf:check": "npm run build && wrangler deploy --dry-run",
+    "deploy": "npm run build && wrangler deploy",
+    "test:python": ".venv/bin/python scripts/test-python.py",
+    "test": "npm run test:python && npm run test:ui",
+    "start": "npm run build && node scripts/dev.mjs --production",
+    "test:security": ".venv/bin/python scripts/test-python.py",
+    "test:production": "npm run build && playwright test -c playwright.production.config.ts",
+    "format": "prettier --write src worker scripts tests public *.ts *.json *.jsonc index.html docs README.md",
+    "format:check": "prettier --check src worker scripts tests public *.ts *.json *.jsonc index.html docs README.md",
+    "audit:python": ".venv/bin/python scripts/audit-python.py"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261016.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "wrangler": "4.151.1"
+  }
+}

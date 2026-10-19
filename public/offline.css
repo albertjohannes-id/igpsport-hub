@@ -1,0 +1,33 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #182c2a;
+  background: #f6f8f7;
+}
+body {
+  margin: 0;
+  padding: 24px;
+}
+main {
+  max-width: 440px;
+  margin: 20vh auto;
+}
+h1 {
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+p {
+  line-height: 1.7;
+  color: #526661;
+}
+a {
+  display: inline-block;
+  padding: 14px 18px;
+  background: #08756c;
+  color: #fff;
+  border-radius: 7px;
+  text-decoration: none;
+}
+a:focus-visible {
+  outline: 3px solid #08756c;
+  outline-offset: 4px;
+}

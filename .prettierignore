@@ -1,0 +1,15 @@
+node_modules/
+dist/
+worker-configuration.d.ts
+backend/
+tests/python/
+scripts/test-python.py
+.local-auth/
+logs/
+upstream-trial/
+.venv/
+.wrangler/
+test-results/
+package-lock.json
+docs/archive/
+scripts/audit-python.py

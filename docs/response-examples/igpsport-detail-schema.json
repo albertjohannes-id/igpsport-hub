@@ -1,0 +1,176 @@
+{
+  "operation": "igpsport-detail",
+  "response_shape": {
+    "rideId": "int",
+    "memberId": "int",
+    "title": "str",
+    "product": "int",
+    "softwareVersion": "str",
+    "avgSpeed": "float",
+    "avgMovingSpeed": "float",
+    "maxSpeed": "float",
+    "startTimeWithWeek": "str",
+    "startTime": "str",
+    "movingTime": "int",
+    "endTime": "str",
+    "totalMovingTime": "int",
+    "totalTime": "int",
+    "rideDistance": "int",
+    "totalAscent": "int",
+    "minHrm": "int",
+    "avgHrm": "int",
+    "maxHrm": "int",
+    "avgCad": "int",
+    "maxCad": "int",
+    "avgAltitude": "int",
+    "minAltitude": "int",
+    "maxAltitude": "int",
+    "calorie": "int",
+    "upslopeMaxGrade": "float",
+    "downslopeMaxGrade": "float",
+    "upslopeAvgVerticalSpeed": "int",
+    "upslopeMaxVerticalSpeed": "int",
+    "downslopeAvgVerticalSpeed": "int",
+    "downslopeMaxVerticalSpeed": "int",
+    "avgTemperature": "int",
+    "maxTemperature": "int",
+    "upslopeDistance": "int",
+    "upslopeAvgGrade": "float",
+    "downslopeDistance": "int",
+    "totalDescent": "int",
+    "downslopeAvgGrade": "float",
+    "exerciseType": "int",
+    "manufacturer": "int",
+    "avgBalance": {
+      "type": "list",
+      "length": 2,
+      "sample_shapes": ["NoneType", "NoneType"]
+    },
+    "avgTQEffect": {
+      "type": "list",
+      "length": 2,
+      "sample_shapes": ["NoneType", "NoneType"]
+    },
+    "avgPedSmooth": {
+      "type": "list",
+      "length": 2,
+      "sample_shapes": ["NoneType", "NoneType"]
+    },
+    "avgPco": {
+      "type": "list",
+      "length": 2,
+      "sample_shapes": ["NoneType", "NoneType"]
+    },
+    "spZoom": {
+      "type": "list",
+      "length": 5,
+      "sample_shapes": [
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float",
+          "time": "int"
+        },
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float",
+          "time": "int"
+        },
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float",
+          "time": "int"
+        }
+      ]
+    },
+    "cadZoom": {
+      "type": "list",
+      "length": 6,
+      "sample_shapes": [
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float"
+        },
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float"
+        },
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float"
+        }
+      ]
+    },
+    "hrZoom": {
+      "type": "list",
+      "length": 5,
+      "sample_shapes": [
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float",
+          "time": "int"
+        },
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float",
+          "time": "int"
+        },
+        {
+          "grade": "int",
+          "zoom": "str",
+          "startNum": "int",
+          "endNum": "int",
+          "percentage": "float",
+          "time": "int"
+        }
+      ]
+    },
+    "upAndDownSlopeZoom": {
+      "type": "list",
+      "length": 3,
+      "sample_shapes": [
+        {
+          "type": "int",
+          "distance": "float",
+          "percentage": "float"
+        },
+        {
+          "type": "int",
+          "distance": "float",
+          "percentage": "float"
+        },
+        {
+          "type": "int",
+          "distance": "float",
+          "percentage": "float"
+        }
+      ]
+    },
+    "fitUrl": "str",
+    "status": "int"
+  },
+  "note": "Observed field/type schema, not raw response values. Bounded sample from 2026-10-17 local trial."
+}
