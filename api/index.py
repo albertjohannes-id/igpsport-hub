@@ -24,9 +24,15 @@ class handler(BaseHTTPRequestHandler):
             allowed.update(x.strip() for x in os.environ.get('APP_ORIGINS', '').split(',') if x.strip())
             origin = self.headers.get('Origin')
             host = self.headers.get('Host', '')
-            if 'https://' + host not in allowed or self.headers.get('X-Apex-Client') != 'local-web':
-                raise RequestError('Request origin not allowed.', 403)
-            if origin and origin not in allowed or self.headers.get('Sec-Fetch-Site') == 'cross-site':
+            # Origins are public; this exists only to diagnose allowlist mismatches.
+            rejected = (('https://' + host not in allowed)
+                        or self.headers.get('X-Apex-Client') != 'local-web'
+                        or (origin and origin not in allowed)
+                        or self.headers.get('Sec-Fetch-Site') == 'cross-site')
+            if rejected:
+                print(json.dumps({'event': 'hosted_origin_rejected', 'host': host, 'origin': origin,
+                                  'vercel_url': os.environ.get('VERCEL_URL', ''),
+                                  'app_origins': os.environ.get('APP_ORIGINS', '')}))
                 raise RequestError('Request origin not allowed.', 403)
             if self.command == 'POST' and origin not in allowed:
                 raise RequestError('Request origin required.', 403)
