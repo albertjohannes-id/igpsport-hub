@@ -484,7 +484,7 @@ export default function App() {
                     </strong>
                     <p>
                       {missing.length === 2
-                        ? 'Sign in with your existing accounts — no iGPSPORT Hub registration needed.'
+                        ? 'Sign in with your existing accounts. No iGPSPORT Hub registration needed.'
                         : `${names[missing[0]]} is the ${
                             missing[0] === 'igpsport' ? 'ride source' : 'transfer destination'
                           }. ${status.sessions[missing[0]].message || ''}`}
@@ -695,8 +695,8 @@ export default function App() {
                               : 'Garmin Connect isn’t connected yet.'}
                           </strong>
                           <p>
-                            Connect Garmin Connect before sending rides — that’s where your
-                            selection ends up.
+                            Connect Garmin Connect before sending rides; that’s where your selection
+                            ends up.
                           </p>
                         </div>
                         <button
@@ -962,7 +962,7 @@ export default function App() {
               </>
             )}
             <p className="form-note">
-              Unofficial connection. Credentials are sent through the local app to {names[login]}.
+              Unofficial connection. Your password is sent only to {names[login]}, never stored.
             </p>
             <AsyncButton
               type="submit"
@@ -1133,24 +1133,24 @@ export default function App() {
           </p>
           <ol className="steps-modal">
             <li>
-              <strong>Connect iGPSPORT</strong> — sign in with your iGPSPORT account. This stays
+              <strong>Connect iGPSPORT:</strong> sign in with your iGPSPORT account. This stays
               signed in.
             </li>
             <li>
-              <strong>Connect Garmin</strong> — sign in with your Garmin Connect account. Also just
+              <strong>Connect Garmin:</strong> sign in with your Garmin Connect account. Also just
               once.
             </li>
             <li>
-              <strong>Pick your rides</strong> — open the iGPSPORT tab, browse, and tick the rides
+              <strong>Pick your rides:</strong> open the iGPSPORT tab, browse, and tick the rides
               you want (up to 10 at a time).
             </li>
             <li>
-              <strong>Send to Garmin</strong> — press “Send to Garmin”. Your rides appear in Garmin
+              <strong>Send to Garmin:</strong> press “Send to Garmin”. Your rides appear in Garmin
               Connect a moment later.
             </li>
           </ol>
           <p className="form-note">
-            No new accounts needed — you only sign in with accounts you already have. Sessions are
+            No new accounts needed: you only sign in with accounts you already have. Sessions are
             remembered in this browser, so you won’t be asked again next time.
           </p>
           <div className="dialog-actions">

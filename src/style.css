@@ -14,6 +14,7 @@
   --tint: #e9f4ef;
   --error: #9c302b;
   --error-bg: #fff0ed;
+  --warn: #a8711a;
   --shadow: 0 24px 80px #122b2930;
   color-scheme: light;
 }
@@ -29,6 +30,7 @@
   --tint: #233d35;
   --error: #ffb6ac;
   --error-bg: #3b2524;
+  --warn: #c98a2b;
   --shadow: 0 24px 80px #0008;
   color-scheme: dark;
 }
@@ -389,7 +391,7 @@ main {
   background: var(--error);
 }
 .dot.disconnected {
-  background: #c98a2b;
+  background: var(--warn);
 }
 .status.disconnected {
   color: var(--text);
