@@ -162,6 +162,65 @@ test('unconfirmed result can be verified inline from the result banner', async (
   expect(state.uploads()).toBe(1);
 });
 
+test('compare tab suggests rides that never went through the Hub', async ({ page }) => {
+  const paired = {
+    ...ride,
+    id: '201',
+    title: 'Morning spin',
+    deviceName: null,
+  };
+  const alone = { ...ride, id: '202', title: 'Evening spin', deviceName: null };
+  const echoed = {
+    ...ride,
+    id: 'g1',
+    provider: 'garmin' as const,
+    title: 'Morning spin Garmin duplicate',
+    deviceName: null,
+    distanceMeters: 30600,
+  };
+  let uploads = 0;
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    let body: unknown;
+    if (url.pathname.endsWith('/status'))
+      body = {
+        mode: 'local',
+        capabilities: { login: true, transfer: true },
+        sessions: { igpsport: { state: 'connected' }, garmin: { state: 'connected' } },
+        history: [],
+      };
+    else if (url.pathname.includes('/igpsport/activities'))
+      body = { activities: [paired, alone], hasMore: false };
+    else if (url.pathname.includes('/garmin/activities'))
+      body = { activities: [echoed], hasMore: false };
+    else if (url.pathname.endsWith('/transfer')) {
+      uploads++;
+      body = {
+        sourceId: alone.id,
+        title: alone.title,
+        state: 'confirmed',
+        activityId: '456',
+        at: 1,
+      };
+    } else body = { activities: [], hasMore: false };
+    await route.fulfill({ json: body });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Compare', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Compare rides' })).toBeVisible();
+  await expect(page.getByText('2 iGPSPORT rides · 1 Garmin rides compared')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Not yet seen in Garmin' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Likely already in Garmin' })).toBeVisible();
+  await expect(page.locator('.compare-pair')).toContainText('Morning spin');
+  await expect(page.locator('.compare-pair')).toContainText('Same day');
+  const card = page.locator('.compare-card', { hasText: 'Evening spin' });
+  await expect(card).toBeVisible();
+  await card.getByRole('button', { name: 'Send to Garmin', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm transfer' }).click();
+  await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
+  expect(uploads).toBe(1);
+});
+
 test('navigation, refresh, clear selection, Garmin details and disconnect', async ({ page }) => {
   await fixture(page);
   await page.getByRole('button', { name: 'Browse iGPSPORT activities →' }).click();

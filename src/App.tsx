@@ -10,8 +10,43 @@ import {
   type Transfer,
 } from './api';
 
-const names = { igpsport: 'iGPSPORT', garmin: 'Garmin Connect' };
+const names = { igpsport: 'iGPSPORT', garmin: 'Garmin Connect', compare: 'Compare' };
 const providers: Provider[] = ['igpsport', 'garmin'];
+const COMPARE_PAGES = 5;
+// Suggestion thresholds: same or adjacent day, close distance, close duration.
+const dayMoment = (a: Activity) => {
+  const raw = a.sourceDateTime;
+  if (!raw) return null;
+  const time = new Date(raw.slice(0, 10).replaceAll('.', '-') + 'T12:00:00').getTime();
+  return Number.isNaN(time) ? null : time / 86400000;
+};
+const rideSeconds = (a: Activity) => a.timerSeconds ?? a.movingSeconds ?? a.elapsedSeconds ?? null;
+const dayGap = (a: Activity, b: Activity) => {
+  const from = dayMoment(a);
+  const to = dayMoment(b);
+  if (from == null || to == null) return 99;
+  return Math.abs(Math.floor(from + 0.5) - Math.floor(to + 0.5));
+};
+const distanceGap = (a: Activity, b: Activity) =>
+  a.distanceMeters == null || b.distanceMeters == null
+    ? null
+    : Math.abs(a.distanceMeters - b.distanceMeters);
+const minuteGap = (a: Activity, b: Activity) => {
+  const diff = Math.abs((rideSeconds(a) ?? 0) - (rideSeconds(b) ?? 0));
+  return diff < 60 ? 'same duration' : `${Math.round(diff / 60)} min apart`;
+};
+// A pair suggests itself when the numbers plausibly describe the same ride.
+const looksLikeSameRide = (a: Activity, b: Activity) => {
+  const days = dayGap(a, b);
+  if (days > 1) return false;
+  let distance = distanceGap(a, b);
+  if (distance == null) return false;
+  if (distance > Math.max((a.distanceMeters || 0) * 0.03, 300)) return false;
+  const from = rideSeconds(a);
+  const to = rideSeconds(b);
+  if (from != null && to != null && Math.abs(from - to) > Math.max(from * 0.12, 240)) return false;
+  return true;
+};
 const metric = (value: number | null | undefined, factor = 1, digits = 1) =>
   value == null
     ? '—'
@@ -46,6 +81,40 @@ const syncLabel = (state: string) =>
   })[state] || state;
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+type ComparePair = { igp: Activity; garmin: Activity };
+type Compare = {
+  pairs: ComparePair[];
+  fresh: Activity[];
+  igpTotal: number;
+  garminTotal: number;
+  capped: boolean;
+};
+const buildCompare = (igpList: Activity[], garList: Activity[], capped: boolean): Compare => {
+  // Only rides with no recorded outcome need a suggestion; the rest of the Hub already knows.
+  const taken = new Set<string>();
+  const pairs: ComparePair[] = [];
+  const fresh: Activity[] = [];
+  const unknown = [...igpList]
+    .filter((a) => a.syncStatus === 'unknown')
+    .sort((a, b) => (dayMoment(b) ?? 0) - (dayMoment(a) ?? 0));
+  for (const igpRide of unknown) {
+    let best: ComparePair | undefined;
+    let bestScore = Infinity;
+    for (const garminRide of garList) {
+      if (taken.has(garminRide.id) || !looksLikeSameRide(igpRide, garminRide)) continue;
+      const score = dayGap(igpRide, garminRide) * 1e6 + (distanceGap(igpRide, garminRide) ?? 0);
+      if (score < bestScore) {
+        bestScore = score;
+        best = { igp: igpRide, garmin: garminRide };
+      }
+    }
+    if (best) {
+      taken.add(best.garmin.id);
+      pairs.push(best);
+    } else fresh.push(igpRide);
+  }
+  return { pairs, fresh, igpTotal: igpList.length, garminTotal: garList.length, capped };
+};
 
 function ConnectionState({ session }: { session?: Session }) {
   const labels = {
@@ -102,7 +171,7 @@ function Modal({
 }
 
 export default function App() {
-  const [tab, setTab] = useState<'home' | Provider>('home');
+  const [tab, setTab] = useState<'home' | 'compare' | Provider>('home');
   const [status, setStatus] = useState<Status>();
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
@@ -127,6 +196,8 @@ export default function App() {
   const [loginBusy, setLoginBusy] = useState(false);
   const [disconnect, setDisconnect] = useState<Provider>();
   const [confirm, setConfirm] = useState<Activity[]>([]);
+  const [compare, setCompare] = useState<Compare>();
+  const [compareLoading, setCompareLoading] = useState(false);
   const [help, setHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
@@ -218,6 +289,39 @@ export default function App() {
       if (version === requestVersion.current) setLoading(false);
     }
   }
+  async function fetchProviderList(provider: Provider) {
+    let list: Activity[] = [];
+    let page = 1;
+    let more = true;
+    while (more && page <= COMPARE_PAGES) {
+      const data = await api<{ activities: Activity[]; hasMore: boolean }>(
+        `/${provider}/activities?page=${page}`,
+      );
+      list = [...list, ...data.activities];
+      more = data.hasMore;
+      page++;
+    }
+    return { list, capped: more };
+  }
+  async function loadCompare() {
+    const version = ++requestVersion.current;
+    setCompareLoading(true);
+    setError('');
+    try {
+      const [igp, gar] = await Promise.all([
+        fetchProviderList('igpsport'),
+        fetchProviderList('garmin'),
+      ]);
+      if (version !== requestVersion.current) return;
+      // Keep the prompt honest: say so when the lists were cut short.
+      setCompare(buildCompare(igp.list, gar.list, igp.capped || gar.capped));
+    } catch (e) {
+      if (version !== requestVersion.current) return;
+      setError(errorMessage(e));
+    } finally {
+      if (version === requestVersion.current) setCompareLoading(false);
+    }
+  }
   function navigate(next: typeof tab) {
     ++requestVersion.current;
     setTab(next);
@@ -228,7 +332,14 @@ export default function App() {
     setError('');
     setNotice('');
     setLoading(false);
-    if (next !== 'home' && status?.sessions[next].state === 'connected') void loadActivities(next);
+    if (next === 'compare') {
+      const bothConnected =
+        status?.sessions.igpsport.state === 'connected' &&
+        status.sessions.garmin.state === 'connected';
+      if (bothConnected) void loadCompare();
+    } else if (next !== 'home' && status?.sessions[next].state === 'connected') {
+      void loadActivities(next);
+    }
   }
   function openLogin(provider: Provider) {
     setLogin(provider);
@@ -320,7 +431,9 @@ export default function App() {
       setSelected([]);
       setConfirm([]);
       await refreshStatus();
-      if (tab !== 'home') await loadActivities(tab);
+      if (tab === 'igpsport') await loadActivities(tab);
+      else if (tab === 'garmin') await loadActivities(tab);
+      else if (tab === 'compare') await loadCompare();
     } catch (e) {
       setError(
         errorMessage(e) + ' If the request was interrupted, check Garmin before trying again.',
@@ -383,7 +496,7 @@ export default function App() {
       <div className="shell">
         <main id="main" className={tab === 'home' ? '' : 'activity-page'}>
           <nav className="tabs" aria-label="Main navigation">
-            {(['home', ...providers] as const).map((item) => (
+            {(['home', ...providers, 'compare'] as const).map((item) => (
               <button
                 key={item}
                 className={tab === item ? 'nav active' : 'nav'}
@@ -391,10 +504,18 @@ export default function App() {
                 onClick={() => navigate(item)}
               >
                 <span className="nav-symbol" aria-hidden="true">
-                  {item === 'home' ? '⌂' : <ProviderLogo provider={item} />}
+                  {item === 'home' ? (
+                    '⌂'
+                  ) : item === 'compare' ? (
+                    '⇄'
+                  ) : (
+                    <ProviderLogo provider={item} />
+                  )}
                 </span>
-                <span>{item === 'home' ? 'Home' : names[item]}</span>
-                {item !== 'home' && (
+                <span>
+                  {item === 'home' ? 'Home' : item === 'compare' ? 'Compare' : names[item]}
+                </span>
+                {(item === 'igpsport' || item === 'garmin') && (
                   <span
                     aria-label={status?.sessions[item].state || 'checking'}
                     className={`dot ${status?.sessions[item].state || ''}`}
@@ -646,6 +767,178 @@ export default function App() {
                 <span>No automatic syncing. You’re in control.</span>
                 <span>iGPSPORT Hub v{__APP_VERSION__} · Unofficial integration</span>
               </footer>
+            </>
+          ) : tab === 'compare' ? (
+            <>
+              <div className="page-head">
+                <div>
+                  <p className="eyebrow">
+                    <span aria-hidden="true">⇄</span> Suggestions
+                  </p>
+                  <h1>Compare rides</h1>
+                  <p className="subtitle">
+                    Guess which rides may have left iGPSPORT without the Hub, and which may already
+                    be in Garmin.
+                  </p>
+                </div>
+                <div className="connection-stack">
+                  {providers.map((provider) => (
+                    <ConnectionState key={provider} session={status?.sessions[provider]} />
+                  ))}
+                </div>
+              </div>
+              {!status || connected < 2 ? (
+                <div className="empty connect-empty">
+                  <span className="provider-mark" aria-hidden="true">
+                    ⇄
+                  </span>
+                  <h2>Connect both sides</h2>
+                  <p>A comparison reads rides from both of your accounts.</p>
+                  {status && missing.length > 0 && (
+                    <div className="connect-actions">
+                      {missing.map((provider) => (
+                        <button
+                          key={provider}
+                          className="primary"
+                          disabled={status.sessions[provider].state === 'unavailable'}
+                          onClick={() =>
+                            status.sessions[provider].state === 'error'
+                              ? void refreshStatus()
+                              : openLogin(provider)
+                          }
+                        >
+                          {status.sessions[provider].state === 'error'
+                            ? `Retry ${names[provider]}`
+                            : `Connect ${names[provider]}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <small>Suggestions only. No new accounts needed.</small>
+                </div>
+              ) : compareLoading && !compare ? (
+                <div className="empty" role="status">
+                  <Spinner />
+                  <p>Reading both activity lists…</p>
+                </div>
+              ) : compare ? (
+                <>
+                  <div className="toolbar">
+                    <AsyncButton
+                      busy={compareLoading}
+                      busyLabel="Comparing…"
+                      className="secondary"
+                      disabled={compareLoading || busy}
+                      onClick={() => void loadCompare()}
+                    >
+                      {compareLoading ? 'Comparing…' : '↻ Compare again'}
+                    </AsyncButton>
+                  </div>
+                  <div className="list-meta">
+                    <span>
+                      {compare.igpTotal} iGPSPORT rides · {compare.garminTotal} Garmin rides
+                      compared
+                    </span>
+                    {compare.capped && <span>Compared the newest 5 pages from each side</span>}
+                  </div>
+                  <section className="compare-section" aria-labelledby="fresh-title">
+                    <div className="section-head">
+                      <h2 id="fresh-title">Not yet seen in Garmin</h2>
+                      <span>{compare.fresh.length} rides</span>
+                    </div>
+                    {!compare.fresh.length ? (
+                      <div className="empty">
+                        <h3>All caught up</h3>
+                        <p>
+                          None of the compared iGPSPORT rides stand alone. Check back after new
+                          rides import.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="compare-grid">
+                        {compare.fresh.map((activity) => (
+                          <article className="compare-card" key={activity.id}>
+                            <strong className="ride-name">{activity.title}</strong>
+                            <span className="ride-meta">
+                              {dateLabel(activity)} · {metric(activity.distanceMeters, 0.001, 2)} km
+                              · {duration(activity)}
+                            </span>
+                            <button
+                              className="primary"
+                              disabled={busy || !status?.capabilities.transfer}
+                              onClick={() => prepare([activity])}
+                            >
+                              Send to Garmin
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                  <section className="compare-section" aria-labelledby="pair-title">
+                    <div className="section-head">
+                      <h2 id="pair-title">Likely already in Garmin</h2>
+                      <span>{compare.pairs.length} guesses</span>
+                    </div>
+                    {!compare.pairs.length ? (
+                      <div className="empty">
+                        <h3>No close matches</h3>
+                        <p>
+                          Nothing in Garmin Connect lines up with the remaining rides on date,
+                          distance and time.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="compare-grid">
+                        {compare.pairs.map((pair) => (
+                          <article className="compare-pair" key={pair.igp.id}>
+                            <div className="match-side">
+                              <strong>{pair.igp.title}</strong>
+                              <span>
+                                {dateLabel(pair.igp)} · {metric(pair.igp.distanceMeters, 0.001, 2)}{' '}
+                                km · {duration(pair.igp)}
+                              </span>
+                            </div>
+                            <span className="match-eq" aria-hidden="true">
+                              ≈
+                            </span>
+                            <div className="match-side">
+                              <strong>{pair.garmin.title}</strong>
+                              <span>
+                                {dateLabel(pair.garmin)} ·{' '}
+                                {metric(pair.garmin.distanceMeters, 0.001, 2)} km ·{' '}
+                                {duration(pair.garmin)}
+                              </span>
+                            </div>
+                            <p className="match-note">
+                              {dayGap(pair.igp, pair.garmin) === 0 ? 'Same day' : 'One day apart'} ·{' '}
+                              {((distanceGap(pair.igp, pair.garmin) ?? 0) / 1000).toLocaleString(
+                                undefined,
+                                {
+                                  maximumFractionDigits: 2,
+                                },
+                              )}{' '}
+                              km apart · {minuteGap(pair.igp, pair.garmin)}
+                            </p>
+                            <a
+                              className="text-button"
+                              href={`https://connect.garmin.com/modern/activity/${pair.garmin.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open in Garmin ↗
+                            </a>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                    <p className="form-note">
+                      Suggestions read date, distance and time only. A matched pair is not proof:
+                      open the ride in Garmin Connect to be sure before you skip it.
+                    </p>
+                  </section>
+                </>
+              ) : null}
             </>
           ) : (
             <>
@@ -1204,7 +1497,8 @@ export default function App() {
           </ol>
           <p className="form-note">
             No new accounts needed: you only sign in with accounts you already have. Sessions are
-            remembered in this browser, so you won’t be asked again next time.
+            remembered in this browser, so you won’t be asked again next time. The Compare tab can
+            also surface rides that may have moved outside the Hub.
           </p>
           <div className="dialog-actions">
             <button className="primary" onClick={() => setHelp(false)}>

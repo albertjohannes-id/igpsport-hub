@@ -309,6 +309,92 @@ main {
 .steps-modal strong {
   font-weight: 650;
 }
+.page-head > .connection-stack {
+  flex-shrink: 0;
+  margin-top: 40px;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.connect-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  justify-items: stretch;
+}
+.connect-actions > button {
+  width: 100%;
+  max-width: 320px;
+}
+.compare-section {
+  margin-top: 34px;
+}
+.compare-section + .compare-section {
+  margin-top: 42px;
+}
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.compare-card,
+.compare-pair {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.ride-name {
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.ride-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.compare-card .primary {
+  justify-self: start;
+}
+.compare-pair {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.match-side {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.match-side strong {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.match-side span {
+  font-size: 0.73rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.match-eq {
+  color: var(--control);
+  font-size: 1.1rem;
+}
+.compare-pair .match-note {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.compare-pair .text-button {
+  grid-column: 1 / -1;
+  min-height: 0;
+  padding: 6px 0;
+  justify-self: start;
+}
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -861,6 +947,22 @@ dd small {
   }
   .page-head > .secondary {
     margin-top: 0;
+  }
+  .page-head > .connection-stack {
+    margin-top: 0;
+  }
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+  .compare-pair {
+    grid-template-columns: 1fr;
+  }
+  .compare-pair .match-eq {
+    display: none;
+  }
+  .compare-pair .match-side + .match-side {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
   }
   .connection-card {
     padding: 20px;
