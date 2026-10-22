@@ -143,8 +143,21 @@ test('uncertain upload offers verification without another upload', async ({ pag
   await page.getByRole('button', { name: 'Send to Garmin', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm transfer' }).click();
   await expect(page.getByText('Upload needs a status check.')).toBeVisible();
-  await page.getByRole('button', { name: 'Check status', exact: true }).click();
+  await page.locator('.row-action').click();
   await page.getByRole('button', { name: 'Check Garmin status', exact: true }).click();
+  await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
+  expect(state.uploads()).toBe(1);
+});
+
+test('unconfirmed result can be verified inline from the result banner', async ({ page }) => {
+  const state = await fixture(page, true, 'unconfirmed');
+  await page.getByRole('button', { name: 'iGPSPORT connected', exact: true }).click();
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Send to Garmin', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm transfer' }).click();
+  await expect(page.getByText('Upload needs a status check.')).toBeVisible();
+  expect(state.uploads()).toBe(1);
+  await page.locator('.result').getByRole('button', { name: 'Check status', exact: true }).click();
   await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
   expect(state.uploads()).toBe(1);
 });

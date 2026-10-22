@@ -112,6 +112,7 @@ export default function App() {
   const [more, setMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [unsyncedOnly, setUnsyncedOnly] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<Activity>();
   const [detailBusy, setDetailBusy] = useState(false);
@@ -223,6 +224,7 @@ export default function App() {
     setRows([]);
     setQuery('');
     setSelected([]);
+    setUnsyncedOnly(false);
     setError('');
     setNotice('');
     setLoading(false);
@@ -350,6 +352,7 @@ export default function App() {
   );
   const eligible = (a: Activity) =>
     !['confirmed', 'existing', 'received', 'unconfirmed'].includes(a.syncStatus);
+  const visible = unsyncedOnly ? filtered.filter(eligible) : filtered;
   const connected = status
     ? providers.filter((p) => status.sessions[p].state === 'connected').length
     : 0;
@@ -440,6 +443,19 @@ export default function App() {
                 </strong>
                 <p>{result.title}</p>
               </div>
+              {['unconfirmed', 'received'].includes(result.state) && (
+                <AsyncButton
+                  busy={busy}
+                  busyLabel="Checking Garmin…"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void transfer([{ id: result.sourceId, title: result.title } as Activity], true)
+                  }
+                >
+                  Check status
+                </AsyncButton>
+              )}
               {result.activityId && (
                 <a
                   href={`https://connect.garmin.com/modern/activity/${result.activityId}`}
@@ -733,12 +749,38 @@ export default function App() {
                     >
                       {loading ? 'Refreshing…' : '↻ Refresh'}
                     </AsyncButton>
+                    {tab === 'igpsport' && (
+                      <button
+                        className="secondary"
+                        aria-pressed={unsyncedOnly}
+                        disabled={loading || busy}
+                        onClick={() => setUnsyncedOnly(!unsyncedOnly)}
+                      >
+                        Unsynced only
+                      </button>
+                    )}
                   </div>
                   <div className="list-meta">
                     <span>
-                      {filtered.length} {filtered.length === 1 ? 'activity' : 'activities'}
-                      {query ? ' matching' : ' loaded'}
+                      {visible.length} {visible.length === 1 ? 'activity' : 'activities'}
+                      {query ? ' matching' : unsyncedOnly ? ' unsynced' : ' loaded'}
                     </span>
+                    {tab === 'igpsport' && (
+                      <button
+                        className="text-button"
+                        disabled={loading || busy || !filtered.some(eligible)}
+                        onClick={() =>
+                          setSelected(
+                            filtered
+                              .filter(eligible)
+                              .slice(0, 10)
+                              .map((a) => a.id),
+                          )
+                        }
+                      >
+                        Select unsynced
+                      </button>
+                    )}
                     {status?.sessions[tab].checkedAt && (
                       <span>
                         Updated{' '}
@@ -755,17 +797,28 @@ export default function App() {
                       <Spinner />
                       <p>Loading your activities…</p>
                     </div>
-                  ) : !filtered.length ? (
+                  ) : !visible.length ? (
                     <div className="empty">
-                      <h3>{query ? 'No matching activities' : 'No activities yet'}</h3>
+                      <h3>
+                        {query
+                          ? 'No matching activities'
+                          : unsyncedOnly
+                            ? 'All caught up'
+                            : 'No activities yet'}
+                      </h3>
                       <p>
                         {query
                           ? 'Try a different name or date.'
-                          : 'Activities will appear here after they are available in your account.'}
+                          : unsyncedOnly
+                            ? 'Every loaded ride is already synced or awaiting its status check.'
+                            : 'Activities will appear here after they are available in your account.'}
                       </p>
-                      {query && (
-                        <button className="secondary" onClick={() => setQuery('')}>
-                          Clear search
+                      {(query || unsyncedOnly) && (
+                        <button
+                          className="secondary"
+                          onClick={() => (query ? setQuery('') : setUnsyncedOnly(false))}
+                        >
+                          {query ? 'Clear search' : 'Show all rides'}
                         </button>
                       )}
                     </div>
@@ -778,7 +831,7 @@ export default function App() {
                         <span>Time</span>
                         <span>{tab === 'igpsport' ? 'Transfer' : 'Details'}</span>
                       </div>
-                      {filtered.map((activity) => (
+                      {visible.map((activity) => (
                         <div
                           className={`activity-row ${tab === 'garmin' ? 'garmin-grid' : ''}`}
                           key={activity.id}

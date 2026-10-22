@@ -264,6 +264,11 @@ main {
 .secondary:hover:not(:disabled) {
   background: var(--tint);
 }
+.secondary[aria-pressed='true'] {
+  background: var(--tint);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .text-button {
   border: 0;
   background: transparent;
@@ -889,7 +894,7 @@ dd small {
     height: 36px;
   }
   .environment {
-    display: none;
+    font-size: 0.72rem;
   }
   main {
     padding: 30px 20px calc(20px + env(safe-area-inset-bottom));
@@ -1016,9 +1021,10 @@ dd small {
   }
   .toolbar {
     gap: 10px;
+    flex-wrap: wrap;
   }
   .search {
-    min-width: 0;
+    min-width: 180px;
   }
   .search input {
     font-size: 1rem;
