@@ -13,6 +13,8 @@ import {
 const names = { igpsport: 'iGPSPORT', garmin: 'Garmin Connect', compare: 'Compare' };
 const providers: Provider[] = ['igpsport', 'garmin'];
 const COMPARE_PAGES = 5;
+// Lists are mirrored when the Compare tab opens; reuse them for this long.
+const AUTO_COMPARE_WAIT = 120000;
 // Suggestion thresholds: same or adjacent day, close distance, close duration.
 const dayMoment = (a: Activity) => {
   const raw = a.sourceDateTime;
@@ -88,8 +90,14 @@ type Compare = {
   igpTotal: number;
   garminTotal: number;
   capped: boolean;
+  fetchedAt: number;
 };
-const buildCompare = (igpList: Activity[], garList: Activity[], capped: boolean): Compare => {
+type CompareSummary = Omit<Compare, 'fetchedAt'>;
+const buildCompare = (
+  igpList: Activity[],
+  garList: Activity[],
+  capped: boolean,
+): CompareSummary => {
   // Only rides with no recorded outcome need a suggestion; the rest of the Hub already knows.
   const taken = new Set<string>();
   const pairs: ComparePair[] = [];
@@ -314,7 +322,10 @@ export default function App() {
       ]);
       if (version !== requestVersion.current) return;
       // Keep the prompt honest: say so when the lists were cut short.
-      setCompare(buildCompare(igp.list, gar.list, igp.capped || gar.capped));
+      setCompare({
+        ...buildCompare(igp.list, gar.list, igp.capped || gar.capped),
+        fetchedAt: Date.now(),
+      });
     } catch (e) {
       if (version !== requestVersion.current) return;
       setError(errorMessage(e));
@@ -336,7 +347,9 @@ export default function App() {
       const bothConnected =
         status?.sessions.igpsport.state === 'connected' &&
         status.sessions.garmin.state === 'connected';
-      if (bothConnected) void loadCompare();
+      // Fresh enough data answers instantly; Compare again stays freely reachable.
+      if (bothConnected && (!compare || Date.now() - compare.fetchedAt > AUTO_COMPARE_WAIT))
+        void loadCompare();
     } else if (next !== 'home' && status?.sessions[next].state === 'connected') {
       void loadActivities(next);
     }
@@ -772,16 +785,17 @@ export default function App() {
             <>
               <div className="page-head">
                 <div>
-                  <p className="eyebrow">
-                    <span aria-hidden="true">⇄</span> Suggestions
-                  </p>
-                  <h1>Compare rides</h1>
+                  <p className="eyebrow">Suggestions</p>
+                  <h1>Compare iGPSPORT &amp; Garmin Connect Ride Data</h1>
                   <p className="subtitle">
                     Guess which rides may have left iGPSPORT without the Hub, and which may already
                     be in Garmin.
                   </p>
                 </div>
                 <div className="connection-stack">
+                  <p className="provider-heading">
+                    <span aria-hidden="true">⇄</span> Compare
+                  </p>
                   {providers.map((provider) => (
                     <ConnectionState key={provider} session={status?.sessions[provider]} />
                   ))}
@@ -837,7 +851,11 @@ export default function App() {
                   <div className="list-meta">
                     <span>
                       {compare.igpTotal} iGPSPORT rides · {compare.garminTotal} Garmin rides
-                      compared
+                      compared · read{' '}
+                      {new Date(compare.fetchedAt).toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </span>
                     {compare.capped && <span>Compared the newest 5 pages from each side</span>}
                   </div>
@@ -944,10 +962,7 @@ export default function App() {
             <>
               <div className="page-head">
                 <div>
-                  <p className="eyebrow provider-heading">
-                    <ProviderLogo provider={tab} />
-                    {names[tab]}
-                  </p>
+                  <p className="eyebrow">{tab === 'igpsport' ? 'Ride source' : 'Destination'}</p>
                   <h1>Your activities</h1>
                   <p className="subtitle">
                     {tab === 'igpsport'
@@ -955,7 +970,13 @@ export default function App() {
                       : 'Browse the activities in your Garmin account.'}
                   </p>
                 </div>
-                <ConnectionState session={status?.sessions[tab]} />
+                <div className="connection-stack">
+                  <p className="provider-heading">
+                    <ProviderLogo provider={tab} />
+                    {names[tab]}
+                  </p>
+                  <ConnectionState session={status?.sessions[tab]} />
+                </div>
               </div>
               {status?.sessions[tab].state !== 'connected' ? (
                 <div className="empty connect-empty">

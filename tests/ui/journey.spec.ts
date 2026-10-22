@@ -207,8 +207,10 @@ test('compare tab suggests rides that never went through the Hub', async ({ page
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Compare', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Compare rides' })).toBeVisible();
-  await expect(page.getByText('2 iGPSPORT rides · 1 Garmin rides compared')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Compare iGPSPORT & Garmin Connect Ride Data' }),
+  ).toBeVisible();
+  await expect(page.getByText(/2 iGPSPORT rides · 1 Garmin rides compared/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Not yet seen in Garmin' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Likely already in Garmin' })).toBeVisible();
   await expect(page.locator('.compare-pair')).toContainText('Morning spin');

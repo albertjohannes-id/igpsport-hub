@@ -130,7 +130,9 @@ for (const width of [320, 390]) {
       const toggle = page.getByRole('button', { name: `Switch to ${theme} theme` });
       if (await toggle.count()) await toggle.click();
       await page.getByRole('button', { name: 'Compare', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Compare rides' })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Compare iGPSPORT & Garmin Connect Ride Data' }),
+      ).toBeVisible();
       await expect(page.getByText('2 iGPSPORT rides · 1 Garmin rides compared')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
