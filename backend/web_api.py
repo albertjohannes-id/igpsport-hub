@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 from pathlib import Path
+import re
 import tempfile
 import threading
 import time
@@ -297,6 +298,7 @@ class BrowserRuntime:
     def __init__(self, vault):
         self.vault = vault
         self.pending = {}
+        self.lock = threading.Lock()
 
     def begin(self, cookie_header):
         from browser_storage import BrowserStore
@@ -304,7 +306,6 @@ class BrowserRuntime:
         store = BrowserStore(self.vault, cookie_header)
         service = Service(store)
         now = time.time()
-        self.pending = {key: value for key, value in self.pending.items() if value[0] > now}
         identifier = None
         cookie = store.cookies.get('apex-mfa')
         if cookie:
@@ -312,24 +313,31 @@ class BrowserRuntime:
                 identifier = self.vault.open('mfa', cookie.value)
             except RequestError:
                 pass
-        identifier = identifier if identifier in self.pending else secrets.token_urlsafe(32)
-        service.pending = dict(self.pending.get(identifier, (0, {}))[1])
-        service.mfa_id = identifier
+        with self.lock:
+            self.pending = {key: value for key, value in self.pending.items() if value[0] > now}
+            if identifier in self.pending:
+                service.pending = dict(self.pending[identifier][1])
+            else:
+                identifier = secrets.token_urlsafe(32)
+            service.mfa_id = identifier
         return service
 
     def finish(self, service):
         store = service.browser_store
         headers = list(store.changed.values())
         identifier = service.mfa_id
+        with self.lock:
+            if service.pending:
+                deadline = min(value[1] + 300 for value in service.pending.values())
+                if deadline > time.time():
+                    self.pending[identifier] = (deadline, service.pending)
+            else:
+                self.pending.pop(identifier, None)
         if service.pending:
-            deadline = min(value[1] + 300 for value in service.pending.values())
-            if deadline > time.time():
-                self.pending[identifier] = (deadline, service.pending)
+            if self.pending.get(identifier):
                 headers.append(store.cookie('apex-mfa', self.vault.seal('mfa', identifier, 300), max_age=300))
-        else:
-            self.pending.pop(identifier, None)
-            if store.cookies.get('apex-mfa'):
-                headers.append(store.cookie('apex-mfa', '', max_age=0))
+        elif store.cookies.get('apex-mfa'):
+            headers.append(store.cookie('apex-mfa', '', max_age=0))
         return headers
 
 
@@ -399,8 +407,11 @@ class Handler(BaseHTTPRequestHandler):
                         raise RequestError('Use application/json.', 415)
                     if self.headers.get('Transfer-Encoding') or len(self.headers.get_all('Content-Length', [])) != 1:
                         raise RequestError('A single Content-Length is required.')
-                    size = int(self.headers.get('Content-Length', 0))
-                    if size > 8192 or size < 0:
+                    raw_size = self.headers.get('Content-Length', '')
+                    if not re.fullmatch(r'[0-9]{1,7}', raw_size):
+                        raise RequestError('A single Content-Length is required.')
+                    size = int(raw_size)
+                    if size > 8192:
                         raise ApiError('Request too large.', 413)
                     data = json.loads(self.rfile.read(size) or b'{}')
                     if not isinstance(data, dict):
@@ -426,9 +437,9 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == 'activities' and not mutation:
                     page = max(1, min(1000, int(parse_qs(url.query).get('page', ['1'])[0])))
                     result = self.service.activities(provider, page)
-                elif action == 'detail' and not mutation and len(parts[3]) <= 20 and parts[3].isascii() and parts[3].isdigit():
+                elif action == 'detail' and not mutation and re.fullmatch(r'[0-9]{1,20}', parts[3]):
                     result = self.service.detail(provider, parts[3])
-                elif action in ('transfer', 'check') and mutation and provider == 'igpsport' and str(data.get('id', '')).isdigit():
+                elif action in ('transfer', 'check') and mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', str(data.get('id', ''))):
                     result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'))
                 else:
                     raise ApiError('Not found.', 404)

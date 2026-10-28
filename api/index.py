@@ -54,8 +54,11 @@ class handler(BaseHTTPRequestHandler):
                     raise RequestError('Use application/json.', 415)
                 if self.headers.get('Transfer-Encoding') or len(self.headers.get_all('Content-Length', [])) != 1:
                     raise RequestError('A single Content-Length is required.')
-                size = int(self.headers['Content-Length'])
-                if not 0 <= size <= 8192:
+                raw_size = self.headers['Content-Length']
+                if not re.fullmatch(r'[0-9]{1,7}', raw_size):
+                    raise RequestError('A single Content-Length is required.')
+                size = int(raw_size)
+                if size > 8192:
                     raise RequestError('Request too large.', 413)
                 data = json.loads(self.rfile.read(size) or b'{}')
                 if not isinstance(data, dict):

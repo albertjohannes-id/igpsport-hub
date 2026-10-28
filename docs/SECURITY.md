@@ -1,6 +1,6 @@
 # Security model and OWASP-oriented baseline
 
-Reviewed 2026-10-18. This is a scoped engineering baseline, **not an OWASP certification, penetration test, or claim of ASVS compliance**. Production cloud account functionality remains disabled.
+Reviewed 2026-10-18; hardened after a follow-up review 2026-10-28. This is a scoped engineering baseline, **not an OWASP certification, penetration test, or claim of ASVS compliance**. Production cloud account functionality remains disabled.
 
 ## Threat model
 
@@ -71,6 +71,13 @@ Before enabling a cloud login or transfer endpoint:
 ## Browser persistence update — 2026-10-18
 
 The web storage model has changed since the local release check above. See [BROWSER-STORAGE.md](BROWSER-STORAGE.md) for the implemented cookie/localStorage design, migration/test steps, measured payload sizes and remaining cloud work. No D1 database was added.
+
+## Follow-up review hardening — 2026-10-28
+
+- Concurrent browser MFA pending state is now lock-protected in `BrowserRuntime` (`backend/web_api.py`).
+- `Content-Length` parsing rejects non-ASCII-digit forms; activity/detail ID segments use an explicit `[0-9]{1,20}` pattern instead of `isdigit()` (which accepted Unicode digits).
+- Production `_headers` sets `Cache-Control: no-store` for `/` and `/index.html` so a stale index cannot reference replaced asset hashes after a deploy.
+- Re-confirmed, no change needed: the custom request header is not a secret (see the note above), the FIT DNS check is not IP-pinned (accepted, narrow allowlist), and concurrent transfers across devices are not exactly-once (Garmin-side duplicate matching is the guard).
 
 ## Reporting and incident response
 

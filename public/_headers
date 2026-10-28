@@ -13,3 +13,8 @@
 
 /manifest.webmanifest
   Cache-Control: no-cache
+
+/
+  Cache-Control: no-store
+/index.html
+  Cache-Control: no-store
