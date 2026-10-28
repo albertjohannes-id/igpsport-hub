@@ -10,6 +10,8 @@ The browser talks to a loopback Python API through the local production preview 
 
 ## Flow
 
+Navigation uses hash routes (`#/home`, `#/igpsport`, `#/garmin`, `#/compare`); the route survives reload, back navigation and deep links. Deep-linking `#/compare` auto-runs a comparison once both accounts are connected.
+
 1. Home checks each saved session by requesting activities. Green means the latest API check succeeded, not a guaranteed future expiry date.
 2. Open iGPSPORT or Garmin Connect. Search loaded activities, load older pages, refresh, and open details. Metrics use km, km/h and labeled moving/timer/elapsed durations. Unknown values remain missing.
 3. Select an iGPSPORT ride or up to ten rides. Connect Garmin if needed, then explicitly confirm the transfer.

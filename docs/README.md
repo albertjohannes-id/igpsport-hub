@@ -13,6 +13,6 @@ Read in this order when taking over the project:
 7. [Frontend contract](FRONTEND.md): API routes and user journey.
 8. [Provider API notes](API-NOTES.md): observed fields, units and response semantics.
 9. [Sessions](LOCAL-SESSIONS.md): local token experiments and refresh observations.
-10. [UI review](UI-REVIEW.md), [test journey](TEST-JOURNEY.md), [asset provenance](ASSETS.md).
+10. [UI review](UI-REVIEW.md), [revamp review](UI-REVIEW-2026-10-27-REVAMP.md), [test journey](TEST-JOURNEY.md), [asset provenance](ASSETS.md).
 
 `response-examples/` contains sanitized observed provider schemas and examples. It must never contain credentials, signed URLs, raw headers or account profile data. `archive/` is historical context; current documents take precedence for paths and operation. Historical provider observations are evidence, not a promise that undocumented endpoints will remain unchanged.

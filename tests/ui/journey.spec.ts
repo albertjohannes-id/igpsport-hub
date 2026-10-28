@@ -207,9 +207,7 @@ test('compare tab suggests rides that never went through the Hub', async ({ page
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Compare', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Compare iGPSPORT & Garmin Connect Ride Data' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Compare your rides' })).toBeVisible();
   await expect(page.getByText(/2 iGPSPORT rides · 1 Garmin rides compared/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Not yet seen in Garmin' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Likely already in Garmin' })).toBeVisible();
@@ -335,6 +333,8 @@ test('browser history persists after reload and is isolated by connected account
   await page.getByRole('button', { name: 'Confirm transfer' }).click();
   await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
   await page.reload();
+  // Hash routing keeps the tab across reloads; history lives on Home.
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
   await expect(page.locator('.history-list')).toContainText('Test ride');
   const history = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('apex-transfer-history-v1')!),
@@ -377,6 +377,7 @@ test('lost transfer response leaves a local pending record that can be checked a
   await page.getByRole('button', { name: 'Confirm transfer' }).click();
   await expect(page.getByText(/If the request was interrupted/)).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
   await expect(page.locator('.history-list')).toContainText('Ride 123');
   await page.getByRole('button', { name: 'Check status', exact: true }).click();
   await expect(page.locator('.history-list')).toContainText('Test ride');

@@ -12,7 +12,12 @@
 
 ## Source responsibilities
 
-- `src/App.tsx`: Home/provider navigation, activity selection, native dialogs, login/MFA, explicit transfer confirmation and result state.
+- `src/App.tsx`: state owner and app shell — hash routing (`#/home|#igpsport|#garmin|#compare`), floating bottom navigation, login/MFA, explicit transfer confirmation and result state.
+- `src/app-context.ts`: shared `AppState` interface and React context; pages are presentational.
+- `src/pages/Home.tsx`, `src/pages/ActivitiesPage.tsx`, `src/pages/ComparePage.tsx`: Home, provider activity lists and ride comparison.
+- `src/Modals.tsx`: all dialogs (login/MFA, detail, transfer confirmation, help), rendered as phone bottom-sheets below 640px.
+- `src/icons.tsx`: in-house inline SVG glyphs; provider tabs use real provider logos.
+- `src/format.ts`, `src/compare.ts`: display formatting and heuristic ride matching.
 - `src/api.ts`: typed boundary, same-origin requests, custom request header and normalized errors; no credential persistence.
 - `src/components.tsx`: shared async button/spinner and provider logo.
 - `src/pwa.ts`, `public/sw.js`: production-only registration and public offline fallback.
