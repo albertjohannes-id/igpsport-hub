@@ -158,6 +158,8 @@ small {
 }
 .github-link {
   display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
   align-items: center;
   min-height: 44px;
   color: var(--muted);

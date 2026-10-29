@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AppContext, type AppState, type Tab } from './app-context';
 import { AsyncButton, ProviderLogo, Spinner } from './components';
-import { CompareIcon, HomeIcon, MoonIcon, SunIcon } from './icons';
+import { CompareIcon, GitHubIcon, HomeIcon, MoonIcon, SunIcon } from './icons';
 import { Home } from './pages/Home';
 import { ActivitiesPage } from './pages/ActivitiesPage';
 import { ComparePage } from './pages/ComparePage';
@@ -521,6 +521,7 @@ export default function App() {
                 rel="noopener noreferrer"
                 aria-label="View iGPSPORT Hub on GitHub (opens in a new tab)"
               >
+                <GitHubIcon />
                 GitHub
               </a>
               <button
