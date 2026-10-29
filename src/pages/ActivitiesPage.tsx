@@ -136,14 +136,30 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
               {app.loading ? 'Refreshing…' : '↻ Refresh'}
             </AsyncButton>
             {tab === 'igpsport' && (
-              <button
-                className="secondary"
-                aria-pressed={app.unsyncedOnly}
-                disabled={app.loading || app.busy}
-                onClick={() => app.setUnsyncedOnly(!app.unsyncedOnly)}
-              >
-                Unsynced only
-              </button>
+              <>
+                <button
+                  className="secondary"
+                  aria-pressed={app.unsyncedOnly}
+                  disabled={app.loading || app.busy}
+                  onClick={() => app.setUnsyncedOnly(!app.unsyncedOnly)}
+                >
+                  Unsynced only
+                </button>
+                <button
+                  className="secondary"
+                  disabled={app.loading || app.busy || !filtered.some(eligible)}
+                  onClick={() =>
+                    app.setSelected(
+                      filtered
+                        .filter(eligible)
+                        .slice(0, 10)
+                        .map((a) => a.id),
+                    )
+                  }
+                >
+                  Select unsynced
+                </button>
+              </>
             )}
           </div>
 
@@ -152,22 +168,6 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
               {visible.length} {visible.length === 1 ? 'activity' : 'activities'}
               {app.query ? ' matching' : app.unsyncedOnly ? ' unsynced' : ' loaded'}
             </span>
-            {tab === 'igpsport' && (
-              <button
-                className="text-button"
-                disabled={app.loading || app.busy || !filtered.some(eligible)}
-                onClick={() =>
-                  app.setSelected(
-                    filtered
-                      .filter(eligible)
-                      .slice(0, 10)
-                      .map((a) => a.id),
-                  )
-                }
-              >
-                Select unsynced
-              </button>
-            )}
             {session?.checkedAt && (
               <span>
                 Updated{' '}
