@@ -260,7 +260,9 @@ export function Modals() {
             We’ll check for existing activities, transfer each original FIT file, then verify the
             result in Garmin.
           </p>
-          <p className="form-note">Keep the page open until verification finishes.</p>
+          <p className="form-note">
+            Rides are sent one at a time. Keep the page open until verification finishes.
+          </p>
           <div className="dialog-actions">
             <button className="secondary" disabled={app.busy} onClick={() => app.setConfirm([])}>
               Cancel

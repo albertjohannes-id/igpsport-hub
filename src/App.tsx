@@ -11,6 +11,8 @@ import { api, ApiError, type Activity, type Provider, type Status, type Transfer
 import { AUTO_COMPARE_WAIT, COMPARE_PAGES, buildCompare, type Compare } from './compare';
 import { errorMessage, names } from './format';
 
+import { MAX_TRANSFER_BATCH } from './transfer';
+
 const providers: Provider[] = ['igpsport', 'garmin'];
 const hashToTab = (hash: string): Tab | null => {
   const match = /^#\/(home|igpsport|garmin|compare)$/.exec(hash);
@@ -57,6 +59,7 @@ export default function App() {
   const requestVersion = useRef(0);
   const detailVersion = useRef(0);
   const mounted = useRef(false);
+  const transferActive = useRef(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -305,6 +308,11 @@ export default function App() {
   }
 
   function prepare(activities: Activity[]) {
+    if (busy) return;
+    if (activities.length > MAX_TRANSFER_BATCH) {
+      setError(`Select up to ${MAX_TRANSFER_BATCH} rides per transfer.`);
+      return;
+    }
     if (status?.sessions.garmin.state !== 'connected') {
       setNotice(
         'Sign in to Garmin Connect first: rides can only be sent once the destination is connected.',
@@ -318,6 +326,12 @@ export default function App() {
   }
 
   async function transfer(activities: Activity[], check = false) {
+    if (busy || transferActive.current) return;
+    if (!activities.length || activities.length > MAX_TRANSFER_BATCH) {
+      setError(`Select between 1 and ${MAX_TRANSFER_BATCH} rides per transfer.`);
+      return;
+    }
+    transferActive.current = true;
     setBusy(true);
     setError('');
     setResult(undefined);
@@ -353,6 +367,7 @@ export default function App() {
     } finally {
       setBusy(false);
       setProgress('');
+      transferActive.current = false;
     }
   }
 
@@ -425,7 +440,11 @@ export default function App() {
     setSelected,
     toggleSelect: (id, checked) =>
       setSelected((previous) =>
-        checked ? [...previous, id] : previous.filter((value) => value !== id),
+        checked
+          ? previous.includes(id) || previous.length >= MAX_TRANSFER_BATCH
+            ? previous
+            : [...previous, id]
+          : previous.filter((value) => value !== id),
       ),
     refreshActivities: () => {
       if (tab === 'igpsport' || tab === 'garmin') void loadActivities(tab);
@@ -495,6 +514,15 @@ export default function App() {
             </button>
             <div className="top-actions">
               <span className="environment">v{__APP_VERSION__}</span>
+              <a
+                className="github-link"
+                href="https://github.com/albertjohannes-id/igpsport-hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="View iGPSPORT Hub on GitHub (opens in a new tab)"
+              >
+                GitHub
+              </a>
               <button
                 className="icon-button theme"
                 aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}

@@ -2,6 +2,8 @@ import { AsyncButton, ProviderLogo } from '../components';
 import { useApp } from '../app-context';
 import { dateLabel, duration, durationLabel, eligible, metric, names, syncLabel } from '../format';
 
+import { MAX_TRANSFER_BATCH as MAX_BATCH } from '../transfer';
+
 function ConnectionState({ session }: { session?: { state: string } }) {
   const labels: Record<string, string> = {
     connected: 'Connected',
@@ -152,7 +154,7 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
                     app.setSelected(
                       filtered
                         .filter(eligible)
-                        .slice(0, 10)
+                        .slice(0, MAX_BATCH)
                         .map((a) => a.id),
                     )
                   }
@@ -178,7 +180,7 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
                 })}
               </span>
             )}
-            {tab === 'igpsport' && <span>Select up to 10 rides</span>}
+            {tab === 'igpsport' && <span>Select up to {MAX_BATCH} rides</span>}
           </div>
 
           {app.loading && !app.rows.length ? (
@@ -227,7 +229,7 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
                         disabled={
                           app.busy ||
                           !eligible(activity) ||
-                          (app.selected.length >= 10 && !app.selected.includes(activity.id))
+                          (app.selected.length >= MAX_BATCH && !app.selected.includes(activity.id))
                         }
                         onChange={(e) => app.toggleSelect(activity.id, e.target.checked)}
                       />

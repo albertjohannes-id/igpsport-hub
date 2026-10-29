@@ -416,3 +416,47 @@ test('login reports a blocked cookie instead of accepting an older saved session
     .click();
   await expect(page.getByText(/did not save the connection cookie/)).toBeVisible();
 });
+
+test('bulk selection caps at five and transfers sequentially', async ({ page }) => {
+  await fixture(page);
+  await page.route('**/api/igpsport/activities*', (route) =>
+    route.fulfill({
+      json: {
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          ...ride,
+          id: String(1000 + i),
+          title: `Ride ${i + 1}`,
+        })),
+        hasMore: false,
+      },
+    }),
+  );
+  let active = 0;
+  let peak = 0;
+  const ids: string[] = [];
+  await page.route('**/api/igpsport/transfer', async (route) => {
+    active++;
+    peak = Math.max(peak, active);
+    const { id } = route.request().postDataJSON();
+    ids.push(id);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    active--;
+    await route.fulfill({
+      json: { sourceId: id, title: 'Ride', state: 'confirmed', activityId: id, at: 1 },
+    });
+  });
+  await page.getByRole('button', { name: 'iGPSPORT connected', exact: true }).click();
+  await page.getByRole('button', { name: 'Select unsynced', exact: true }).click();
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(5);
+  await expect(page.getByRole('checkbox', { checked: false }).first()).toBeDisabled();
+  await page.getByRole('button', { name: /Send.*Garmin/ }).click();
+  await page.getByRole('button', { name: 'Confirm transfer', exact: true }).click();
+  await expect.poll(() => ids.length).toBe(5);
+  await expect(page.getByRole('button', { name: 'Confirm transfer', exact: true })).toHaveCount(0);
+  expect(peak).toBe(1);
+  expect(new Set(ids).size).toBe(5);
+  await expect(page.getByRole('link', { name: /View iGPSPORT Hub on GitHub/ })).toHaveAttribute(
+    'href',
+    'https://github.com/albertjohannes-id/igpsport-hub',
+  );
+});

@@ -156,6 +156,19 @@ small {
   align-items: center;
   gap: 12px;
 }
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.github-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
 .environment {
   font-size: 0.72rem;
   color: var(--muted);
