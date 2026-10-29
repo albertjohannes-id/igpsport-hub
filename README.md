@@ -4,6 +4,8 @@ Source: [albertjohannes-id/igpsport-hub](https://github.com/albertjohannes-id/ig
 
 A lightweight local app for browsing iGPSPORT and Garmin activities and explicitly transferring selected iGPSPORT FIT files to Garmin. No iGPSPORT Hub signup, automatic syncing, or background uploads.
 
+Built on the iGPSPORT client from [hmqgg/iGPSport2Garmin](https://github.com/hmqgg/iGPSport2Garmin) — thanks to [@hmqgg](https://github.com/hmqgg) for the client that made this project possible.
+
 ## Origin and credits
 
 iGPSPORT Hub builds on the iGPSPORT client from **[hmqgg/iGPSport2Garmin](https://github.com/hmqgg/iGPSport2Garmin)**, pinned to commit `5a5f635491468cc63943a44db52d2d62a53b2054`. The local backend imports its `IGPSportClient` from the isolated `upstream-trial/` checkout. Garmin operations use the separate [python-garminconnect](https://github.com/cyberjunky/python-garminconnect) library.
