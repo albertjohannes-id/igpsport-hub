@@ -89,6 +89,48 @@ class WebApiTests(unittest.TestCase):
         self.assertNotIn('scope', result['history'][0])
         self.assertNotIn('summary', result['history'][0])
 
+    def _tagged_ride(self, summary, candidates):
+        import requests
+        client = Mock()
+        self.service.clients['garmin'] = client
+        with patch.object(self.service, 'identity'), patch.object(self.service, 'load', return_value=client), \
+             patch.object(self.service, 'igps_get', return_value={'title': 'Ride', 'fitUrl': 'https://fit.example.invalid/1'}), \
+             patch('web_api.validate_fit_url', return_value='https://fit.example.invalid/1'), \
+             patch('web_api.requests.get') as get, \
+             patch('web_api.fit_summary', return_value=summary), \
+             patch('web_api.fetch_candidates', return_value=candidates):
+            get.return_value.__enter__ = Mock(return_value=get.return_value)
+            get.return_value.__exit__ = Mock(return_value=False)
+            get.return_value.is_redirect = False
+            get.return_value.iter_content.return_value = [b'fit']
+            return self.service.tag('1')
+
+    def test_tag_records_verified_existing_ride(self):
+        from datetime import datetime, timezone
+        summary = {'start': datetime(2026, 1, 2, 6, 0, tzinfo=timezone.utc), 'duration': 3600.0, 'distance': 30000.0}
+        candidate = {'activityId': 55, 'startTimeGMT': '2026-01-02T06:00:00.0Z', 'duration': 3601.0, 'distance': 30010.0}
+        result = self._tagged_ride(summary, [candidate])
+        self.assertEqual(result['state'], 'existing')
+        self.assertEqual(result['activityId'], '55')
+        self.assertEqual(self.service.history[0]['sourceId'], '1')
+        self.assertTrue((self.root / 'web-history.json').exists())
+
+    def test_tag_without_garmin_match_records_nothing(self):
+        from datetime import datetime, timezone
+        summary = {'start': datetime(2026, 1, 2, 6, 0, tzinfo=timezone.utc), 'duration': 3600.0, 'distance': 30000.0}
+        with self.assertRaises(ApiError) as error:
+            self._tagged_ride(summary, [{'activityId': 55, 'startTimeGMT': '2026-01-02T06:00:00.0Z', 'duration': 7200.0, 'distance': 30010.0}])
+        self.assertEqual(error.exception.code, 'NOT_ON_GARMIN')
+        self.assertEqual(self.service.history, [])
+
+    def test_tag_skips_ride_already_recorded(self):
+        self.service.history = [{'sourceId': '1', 'scope': 'scope', 'state': 'existing', 'activityId': '9'}]
+        self.service.scope = 'scope'
+        with patch.object(self.service, 'identity'), patch.object(self.service, 'load', return_value=Mock()):
+            result = self.service.tag('1')
+        self.assertEqual(result['state'], 'existing')
+        self.assertEqual(result['activityId'], '9')
+
 
 if __name__ == '__main__':
     unittest.main()

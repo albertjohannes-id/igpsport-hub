@@ -460,6 +460,11 @@ export default function App() {
     compare,
     compareLoading,
     loadCompare: () => void loadCompare(),
+    tagMatch: async (id) => {
+      await api<Transfer>('/igpsport/tag', { id });
+      // The tag lives in local history now; a fresh compare re-derives from it.
+      await loadCompare();
+    },
     login,
     loginMfa: mfa,
     username,

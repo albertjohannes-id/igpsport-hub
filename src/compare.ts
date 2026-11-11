@@ -1,6 +1,6 @@
 import type { Activity } from './api';
 
-export const COMPARE_PAGES = 5;
+export const COMPARE_PAGES = 10;
 // Lists are mirrored when the Compare tab opens; reuse them for this long.
 export const AUTO_COMPARE_WAIT = 120000;
 

@@ -1,8 +1,9 @@
 import { AsyncButton, Spinner } from '../components';
 import { CompareIcon } from '../icons';
 import { useApp } from '../app-context';
-import { dateLabel, duration, metric, names } from '../format';
+import { dateLabel, duration, errorMessage, metric, names } from '../format';
 import { distanceGap, dayGap, minuteGap } from '../compare';
+import { useState } from 'react';
 
 const providers = ['igpsport', 'garmin'] as const;
 
@@ -13,6 +14,20 @@ export function ComparePage() {
     ? providers.filter((p) => status.sessions[p].state === 'connected').length
     : 0;
   const missing = status ? providers.filter((p) => status.sessions[p].state !== 'connected') : [];
+  const [tagging, setTagging] = useState<string>();
+  const [tagError, setTagError] = useState<{ id: string; message: string }>();
+
+  async function confirmPair(id: string) {
+    setTagging(id);
+    setTagError(undefined);
+    try {
+      await app.tagMatch(id);
+    } catch (error) {
+      setTagError({ id, message: errorMessage(error) });
+    } finally {
+      setTagging(undefined);
+    }
+  }
 
   return (
     <>
@@ -177,13 +192,26 @@ export function ComparePage() {
                     >
                       Open in Garmin ↗
                     </a>
+                    <AsyncButton
+                      busy={tagging === pair.igp.id}
+                      busyLabel="Verifying on Garmin…"
+                      className="secondary slim"
+                      disabled={!!tagging || app.busy}
+                      onClick={() => confirmPair(pair.igp.id)}
+                    >
+                      Yes, same ride — tag as synced
+                    </AsyncButton>
+                    {tagError?.id === pair.igp.id && (
+                      <p className="pair-error">{tagError.message}</p>
+                    )}
                   </article>
                 ))}
               </div>
             )}
             <p className="form-note">
               Suggestions read date, distance and time only. A matched pair is not proof: open the
-              ride in Garmin Connect to be sure before you skip it.
+              ride in Garmin Connect to be sure, or let “Yes, same ride” verify it against the
+              original FIT data before recording it locally.
             </p>
           </section>
         </>

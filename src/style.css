@@ -922,6 +922,17 @@ footer {
   padding: 6px 0;
   justify-self: start;
 }
+.compare-pair .slim {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  justify-self: start;
+}
+.pair-error {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--error);
+}
 .connect-actions {
   display: grid;
   gap: 10px;

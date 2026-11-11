@@ -231,6 +231,45 @@ class HostedService:
         result['receipt'] = self.store.receipt(scope, entry)
         return result
 
+    def ride_summary(self, identifier):
+        """Fetch the activity detail and download its FIT with limits."""
+        detail = self.igps('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
+        url = validate_fit_url(detail.get('fitUrl'))
+        content = bytearray()
+        with requests.get(url, timeout=(10, 30), stream=True, allow_redirects=False) as response:
+            if response.is_redirect:
+                raise RequestError('FIT download redirects are not allowed.')
+            response.raise_for_status()
+            started = time.monotonic()
+            for chunk in response.iter_content(65536):
+                content.extend(chunk)
+                if len(content) > 50 * 1024 * 1024 or time.monotonic() - started > 120:
+                    raise RequestError('FIT download exceeded its size or time limit.')
+        return str(detail.get('title') or 'Ride')[:500], fit_summary(content), content
+
+    def tag(self, identifier, receipt=None):
+        """Record a ride as already on Garmin, after verifying it against the FIT metrics."""
+        client = self.garmin()
+        scope = self.store.scope()
+        if not scope:
+            raise RequestError('Connect both accounts before tagging rides.', 401, 'RECONNECT')
+        if receipt:
+            restored = self.store.read_receipt(scope, receipt)
+            if (not isinstance(restored, dict) or restored.get('sourceId') != identifier
+                    or restored.get('scope') != scope):
+                raise RequestError('Transfer belongs to another account or activity.', 400)
+            if restored.get('state') in ('confirmed', 'existing'):
+                return self.transfer_result(scope, restored)
+        title, summary, _ = self.ride_summary(identifier)
+        candidates = fetch_candidates(client, summary)
+        existing = [ride for ride in candidates if matches(ride, summary)]
+        if not existing:
+            raise RequestError('No matching activity on Garmin yet, so nothing was tagged.', 404, 'NOT_ON_GARMIN')
+        entry = {'sourceId': identifier, 'title': title, 'state': 'existing',
+                 'activityId': str(existing[0]['activityId']), 'at': time.time(), 'scope': scope,
+                 'summary': summary | {'start': summary['start'].isoformat()}, 'before': []}
+        return self.transfer_result(scope, entry)
+
     def transfer(self, identifier, check=False, receipt=None):
         client = self.garmin()
         scope = self.store.scope()
@@ -256,22 +295,10 @@ class HostedService:
             return self.transfer_result(scope, entry)
         if entry:
             raise RequestError('This upload is not confirmed yet. Use Check status before trying another upload.', 409, 'CHECK_FIRST')
-        detail = self.igps('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
-        url = validate_fit_url(detail.get('fitUrl'))
-        content = bytearray()
-        with requests.get(url, timeout=(10, 30), stream=True, allow_redirects=False) as response:
-            if response.is_redirect:
-                raise RequestError('FIT download redirects are not allowed.')
-            response.raise_for_status()
-            started = time.monotonic()
-            for chunk in response.iter_content(65536):
-                content.extend(chunk)
-                if len(content) > 50 * 1024 * 1024 or time.monotonic() - started > 120:
-                    raise RequestError('FIT download exceeded its size or time limit.')
-        summary = fit_summary(content)
+        title, summary, content = self.ride_summary(identifier)
         before = fetch_candidates(client, summary)
         existing = [ride for ride in before if matches(ride, summary)]
-        entry = {'sourceId': identifier, 'title': str(detail.get('title') or 'Ride')[:500],
+        entry = {'sourceId': identifier, 'title': title,
                  'state': 'received', 'activityId': None, 'at': time.time(), 'scope': scope,
                  'summary': summary | {'start': summary['start'].isoformat()}, 'before': []}
         if existing:
@@ -296,7 +323,7 @@ def dispatch(service, path, method, data, query):
         return service.status()
     if path == '/api/storage' and method == 'GET':
         return {'saved': list(service.store.values), 'proofs': {p: service.store.proof(p) for p in ('igpsport', 'garmin')}}
-    match = re.fullmatch(r'/api/(igpsport|garmin)/(login|disconnect|activities|detail|transfer|check)(?:/([0-9]{1,20}))?', path)
+    match = re.fullmatch(r'/api/(igpsport|garmin)/(login|disconnect|activities|detail|transfer|check|tag)(?:/([0-9]{1,20}))?', path)
     if not match:
         raise RequestError('This hosted API supports connection, browsing and transfer operations only.', 404, 'NOT_AVAILABLE')
     provider, action, identifier = match.groups()
@@ -321,4 +348,6 @@ def dispatch(service, path, method, data, query):
         if provider == 'garmin':
             service.clear_mfa()
         return {'disconnected': True}
+    if action == 'tag':
+        return service.tag(data['id'], data.get('receipt'))
     return service.transfer(data['id'], action == 'check', data.get('receipt'))

@@ -47,7 +47,7 @@ export function Home() {
           disabled={app.checking || app.busy}
           onClick={app.checkConnections}
         >
-          {app.checking ? 'Checking…' : 'Check my connections'}
+          {app.checking ? 'Checking…' : '↻ Connections'}
         </AsyncButton>
       </div>
 

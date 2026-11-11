@@ -97,6 +97,22 @@ class Service:
         if not self.browser_store:
             save(self.history_path, self.history)
 
+    def ride_summary(self, identifier):
+        """Fetch the activity detail and download its FIT with limits."""
+        detail = self.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
+        url = validate_fit_url(detail.get('fitUrl'))
+        content = bytearray()
+        with requests.get(url, timeout=(10, 30), stream=True, allow_redirects=False) as response:
+            if response.is_redirect:
+                raise ApiError('FIT download redirects are not allowed.')
+            response.raise_for_status()
+            started = time.monotonic()
+            for chunk in response.iter_content(65536):
+                content.extend(chunk)
+                if len(content) > 50 * 1024 * 1024 or time.monotonic() - started > 120:
+                    raise ApiError('FIT download exceeded its size or time limit.')
+        return str(detail.get('title') or 'Ride')[:500], fit_summary(content), content
+
     def transfer_result(self, entry):
         result = {k: v for k, v in entry.items() if k not in ('scope', 'summary', 'before')}
         if self.browser_store:
@@ -253,22 +269,10 @@ class Service:
             return self.transfer_result(previous)
         if previous:
             raise ApiError('This upload is not confirmed yet. Use Check status before trying another upload.', 409, 'CHECK_FIRST')
-        detail = self.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
-        url = validate_fit_url(detail.get('fitUrl'))
-        content = bytearray()
-        with requests.get(url, timeout=(10, 30), stream=True, allow_redirects=False) as response:
-            if response.is_redirect:
-                raise ApiError('FIT download redirects are not allowed.')
-            response.raise_for_status()
-            started = time.monotonic()
-            for chunk in response.iter_content(65536):
-                content.extend(chunk)
-                if len(content) > 50 * 1024 * 1024 or time.monotonic() - started > 120:
-                    raise ApiError('FIT download exceeded its size or time limit.')
-        summary = fit_summary(content)
+        title, summary, content = self.ride_summary(identifier)
         before = fetch_candidates(client, summary)
         existing = [a for a in before if matches(a, summary)]
-        entry = {'sourceId': identifier, 'title': str(detail.get('title') or 'Ride')[:500], 'state': 'received', 'activityId': None,
+        entry = {'sourceId': identifier, 'title': title, 'state': 'received', 'activityId': None,
                  'at': time.time(), 'scope': self.scope, 'summary': summary | {'start': summary['start'].isoformat()}, 'before': [{'activityId': a['activityId']} for a in ([] if self.browser_store else before)]}
         self.history.insert(0, entry)
         self.save_history()
@@ -290,6 +294,28 @@ class Service:
             except Exception as error:
                 entry['state'] = 'unconfirmed'
                 self.trace.emit('web.transfer_uncertain', error=error)
+        self.save_history()
+        return self.transfer_result(entry)
+
+    def tag(self, identifier):
+        """Record a ride as already on Garmin, after verifying it against the FIT metrics."""
+        self.identity()
+        client = self.load('garmin')
+        if self.browser_store and not self.scope:
+            raise ApiError('Connect both accounts before tagging rides.', 401, 'RECONNECT')
+        previous = next((h for h in self.history if h.get('scope') == self.scope and h['sourceId'] == identifier), None)
+        if previous and previous['state'] in ('confirmed', 'existing'):
+            return self.transfer_result(previous)
+        title, summary, _ = self.ride_summary(identifier)
+        candidates = fetch_candidates(client, summary)
+        existing = [a for a in candidates if matches(a, summary)]
+        if not existing:
+            raise ApiError('No matching activity on Garmin yet, so nothing was tagged.', 404, 'NOT_ON_GARMIN')
+        entry = {'sourceId': identifier, 'title': title, 'state': 'existing', 'activityId': str(existing[0]['activityId']),
+                 'at': time.time(), 'scope': self.scope,
+                 'summary': summary | {'start': summary['start'].isoformat()},
+                 'before': [{'activityId': a['activityId']} for a in ([] if self.browser_store else candidates)]}
+        self.history.insert(0, entry)
         self.save_history()
         return self.transfer_result(entry)
 
@@ -439,8 +465,11 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.service.activities(provider, page)
                 elif action == 'detail' and not mutation and re.fullmatch(r'[0-9]{1,20}', parts[3]):
                     result = self.service.detail(provider, parts[3])
-                elif action in ('transfer', 'check') and mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', str(data.get('id', ''))):
-                    result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'))
+                elif action in ('transfer', 'check', 'tag') and mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', str(data.get('id', ''))):
+                    if action == 'tag':
+                        result = self.service.tag(str(data['id']))
+                    else:
+                        result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'))
                 else:
                     raise ApiError('Not found.', 404)
                 self.respond(result)

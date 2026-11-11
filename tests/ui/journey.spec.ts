@@ -67,9 +67,7 @@ async function fixture(page: Page, connected = true, outcome = 'confirmed', scop
     await route.fulfill({ json: body });
   });
   await page.goto('/');
-  await expect(
-    page.getByRole('button', { name: 'Check my connections', exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole('button', { name: '↻ Connections', exact: true })).toBeEnabled();
   return { uploads: () => uploads };
 }
 
@@ -223,6 +221,52 @@ test('compare tab suggests rides that never went through the Hub', async ({ page
   expect(uploads).toBe(1);
 });
 
+test('compare pair can be tagged as already synced after verification', async ({ page }) => {
+  const paired = { ...ride, id: '201', title: 'Morning spin', deviceName: null };
+  const echoed = {
+    ...ride,
+    id: 'g1',
+    provider: 'garmin' as const,
+    title: 'Morning spin Garmin duplicate',
+    deviceName: null,
+    distanceMeters: 30600,
+  };
+  let tagged = false;
+  let tagPayload: Record<string, unknown> | undefined;
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    let body: unknown;
+    if (url.pathname.endsWith('/status'))
+      body = {
+        mode: 'local',
+        capabilities: { login: true, transfer: true },
+        sessions: { igpsport: { state: 'connected' }, garmin: { state: 'connected' } },
+        history: [],
+      };
+    else if (url.pathname.includes('/igpsport/activities'))
+      body = {
+        activities: [{ ...paired, syncStatus: tagged ? 'existing' : 'unknown' }],
+        hasMore: false,
+      };
+    else if (url.pathname.includes('/garmin/activities'))
+      body = { activities: [echoed], hasMore: false };
+    else if (url.pathname.endsWith('/tag')) {
+      tagPayload = route.request().postDataJSON() as Record<string, unknown>;
+      tagged = true;
+      body = { sourceId: '201', title: 'Morning spin', state: 'existing', activityId: 'g1', at: 1 };
+    } else body = { activities: [], hasMore: false };
+    await route.fulfill({ json: body });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Compare', exact: true }).click();
+  const pair = page.locator('.compare-pair');
+  await expect(pair).toContainText('Morning spin');
+  await expect(page.getByRole('heading', { name: 'Likely already in Garmin' })).toBeVisible();
+  await pair.getByRole('button', { name: /Yes, same ride/ }).click();
+  await expect(page.getByRole('heading', { name: 'No close matches' })).toBeVisible();
+  expect(tagPayload).toMatchObject({ id: '201' });
+});
+
 test('navigation, refresh, clear selection, Garmin details and disconnect', async ({ page }) => {
   await fixture(page);
   await page.getByRole('button', { name: 'Browse iGPSPORT activities →' }).click();
@@ -245,10 +289,8 @@ test('navigation, refresh, clear selection, Garmin details and disconnect', asyn
   );
   await page.getByRole('button', { name: 'Close dialog' }).click();
   await page.getByRole('button', { name: 'iGPSPORT Hub home' }).click();
-  await page.getByRole('button', { name: 'Check my connections', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: 'Check my connections', exact: true }),
-  ).toBeEnabled();
+  await page.getByRole('button', { name: '↻ Connections', exact: true }).click();
+  await expect(page.getByRole('button', { name: '↻ Connections', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Disconnect', exact: true }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: 'Disconnect', exact: true }).click();
   await expect(

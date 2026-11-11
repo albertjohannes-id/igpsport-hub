@@ -92,7 +92,8 @@ async function browserRequest<T>(
 ): Promise<T> {
   if (!navigator.onLine)
     throw new ApiError('You are offline. Reconnect and try again.', 0, 'OFFLINE');
-  const transfer = path === '/igpsport/transfer' || path === '/igpsport/check';
+  const transfer =
+    path === '/igpsport/transfer' || path === '/igpsport/check' || path === '/igpsport/tag';
   // Re-read cookies before account-sensitive work; another tab may have switched accounts.
   if (transfer && historyScope !== undefined) {
     const current = await request<Status>('/status', undefined, signal);
@@ -110,28 +111,41 @@ async function browserRequest<T>(
       throw new ApiError('Connect both accounts before transferring.', 401, 'RECONNECT');
     try {
       const previous = readHistory(historyScope).find((entry) => entry.sourceId === body?.id);
-      if (
-        path.endsWith('/transfer') &&
-        previous &&
-        ['received', 'unconfirmed'].includes(previous.state)
-      ) {
-        throw new ApiError(
-          'A previous transfer is not confirmed. Use Check status first.',
-          409,
-          'CHECK_FIRST',
+      if (path.endsWith('/tag')) {
+        // Tagging waits for a settled transfer, and skips the call when already tagged.
+        if (previous && ['received', 'unconfirmed'].includes(previous.state)) {
+          throw new ApiError(
+            'A previous transfer is not confirmed. Use Check status first.',
+            409,
+            'CHECK_FIRST',
+          );
+        }
+        if (previous && ['confirmed', 'existing'].includes(previous.state)) return previous as T;
+        body = { ...body, ...(previous?.receipt ? { receipt: previous.receipt } : {}) };
+      } else {
+        if (
+          path.endsWith('/transfer') &&
+          previous &&
+          ['received', 'unconfirmed'].includes(previous.state)
+        ) {
+          throw new ApiError(
+            'A previous transfer is not confirmed. Use Check status first.',
+            409,
+            'CHECK_FIRST',
+          );
+        }
+        body = { ...body, ...(previous?.receipt ? { receipt: previous.receipt } : {}) };
+        saveTransfer(
+          historyScope,
+          previous || {
+            sourceId: String(body.id),
+            title: 'Ride ' + body.id,
+            state: 'received',
+            activityId: null,
+            at: Date.now() / 1000,
+          },
         );
       }
-      body = { ...body, ...(previous?.receipt ? { receipt: previous.receipt } : {}) };
-      saveTransfer(
-        historyScope,
-        previous || {
-          sourceId: String(body.id),
-          title: 'Ride ' + body.id,
-          state: 'received',
-          activityId: null,
-          at: Date.now() / 1000,
-        },
-      );
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(

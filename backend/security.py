@@ -24,7 +24,7 @@ def validate_payload(action, data):
         for key, value in data.items():
             if not isinstance(value, str) or not value.strip() or len(value) > limits[key] or '\x00' in value:
                 raise RequestError('Invalid login field.')
-    elif action in ('transfer', 'check'):
+    elif action in ('transfer', 'check', 'tag'):
         if not {'id'} <= set(data) <= {'id', 'receipt'} or not isinstance(data['id'], str) or not re.fullmatch(r'[0-9]{1,20}', data['id']):
             raise RequestError('A numeric activity ID is required.')
         if 'receipt' in data and (not isinstance(data['receipt'], str) or len(data['receipt']) > 6000):

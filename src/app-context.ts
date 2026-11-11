@@ -56,6 +56,7 @@ export interface AppState {
   compare?: Compare;
   compareLoading: boolean;
   loadCompare: () => void;
+  tagMatch: (id: string) => Promise<void>;
 
   login?: Provider;
   loginMfa: boolean;

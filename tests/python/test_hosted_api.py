@@ -156,6 +156,18 @@ class HostedTests(unittest.TestCase):
             for item in patches:
                 item.stop()
 
+    def tag_patches(self, garmin, candidates):
+        return self.transfer_patches(garmin, candidates)
+
+    def tag_call(self, patches):
+        for item in patches:
+            item.start()
+        try:
+            return self.service.tag('321')
+        finally:
+            for item in patches:
+                item.stop()
+
     def test_existing_activity_avoids_upload(self):
         garmin = Mock()
         result = self.transfer_call(self.transfer_patches(garmin, [self.existing_candidate(555)]))
@@ -210,6 +222,38 @@ class HostedTests(unittest.TestCase):
                 self.service.transfer('321', False, receipt)
         self.assertEqual(caught.exception.status, 409)
         self.assertEqual(caught.exception.code, 'CHECK_FIRST')
+
+    def test_tag_records_verified_existing_ride(self):
+        garmin = Mock()
+        result = self.tag_call(self.tag_patches(garmin, [self.existing_candidate(555)]))
+        self.assertEqual(result['state'], 'existing')
+        self.assertEqual(result['activityId'], '555')
+        self.assertEqual(result['sourceId'], '321')
+        self.assertIn('receipt', result)
+        self.assertNotIn('summary', result)
+        garmin.upload_activity.assert_not_called()
+
+    def test_tag_without_garmin_match_records_nothing(self):
+        garmin = Mock()
+        candidate = dict(self.existing_candidate(555), duration=7200)
+        with self.assertRaises(RequestError) as caught:
+            self.tag_call(self.tag_patches(garmin, [candidate]))
+        self.assertEqual(caught.exception.status, 404)
+        self.assertEqual(caught.exception.code, 'NOT_ON_GARMIN')
+        garmin.upload_activity.assert_not_called()
+
+    def test_tag_replays_confirmed_receipt(self):
+        store = self.connect_both()
+        scope = store.scope()
+        entry = {'sourceId': '321', 'title': 'Morning ride', 'state': 'existing', 'activityId': '555',
+                 'at': 1.0, 'scope': scope, 'summary': SUMMARY_FROZEN, 'before': []}
+        receipt = store.receipt(scope, entry)
+        garmin = Mock()
+        with patch('hosted_api.Garmin', return_value=garmin):
+            result = self.service.tag('321', receipt)
+        self.assertEqual(result['state'], 'existing')
+        self.assertEqual(result['activityId'], '555')
+        garmin.upload_activity.assert_not_called()
 
     def test_receipt_is_bound_to_scope_and_activity(self):
         store = self.connect_both()
