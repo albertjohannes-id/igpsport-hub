@@ -9,7 +9,7 @@ test('production headers, install assets and safe offline fallback', async ({
   expect(response?.headers()['content-security-policy']).toContain("script-src 'self'");
   expect(response?.headers()['content-security-policy']).not.toContain('unsafe-inline');
   expect(response?.headers()['x-frame-options']).toBe('DENY');
-  await expect(page.getByRole('heading', { name: 'Your ride connections.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My connections' })).toBeVisible();
   const manifest = await (await request.get('/manifest.webmanifest')).json();
   expect(manifest.display).toBe('standalone');
   for (const icon of manifest.icons) {
@@ -39,7 +39,7 @@ test('production headers, install assets and safe offline fallback', async ({
   await expect(page.getByRole('heading', { name: 'You’re offline.' })).toBeVisible();
   await context.setOffline(false);
   await page.getByRole('link', { name: 'Try again' }).click();
-  await expect(page.getByRole('heading', { name: 'Your ride connections.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My connections' })).toBeVisible();
 });
 
 test('cloud API fails closed with no-store and method restrictions', async ({ request }) => {

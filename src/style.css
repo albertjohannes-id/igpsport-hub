@@ -524,7 +524,8 @@ main {
 .connection-actions {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 10px;
+  margin-left: auto;
 }
 .connection-actions > .primary,
 .connection-actions > .secondary {

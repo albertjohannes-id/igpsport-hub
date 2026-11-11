@@ -34,7 +34,12 @@ export function Home() {
   return (
     <>
       <div className="page-head">
-        <h1>Your ride connections.</h1>
+        <div>
+          <h1>My connections</h1>
+          <p className="subtitle">
+            {app.checking ? 'Checking sessions' : `${connected} of 2 connected`}
+          </p>
+        </div>
         <AsyncButton
           busy={app.checking}
           busyLabel="Checking…"
@@ -42,15 +47,11 @@ export function Home() {
           disabled={app.checking || app.busy}
           onClick={app.checkConnections}
         >
-          {app.checking ? 'Checking…' : 'Check connections'}
+          {app.checking ? 'Checking…' : 'Check my connections'}
         </AsyncButton>
       </div>
 
-      <section className="connections-section" aria-labelledby="connections-title">
-        <div className="section-head">
-          <h2 id="connections-title">Your connections</h2>
-          <span>{app.checking ? 'Checking sessions' : `${connected} of 2 connected`}</span>
-        </div>
+      <section className="connections-section" aria-label="Connections">
         <div className="connection-grid">
           {providers.map((provider) => {
             const session = status?.sessions[provider];

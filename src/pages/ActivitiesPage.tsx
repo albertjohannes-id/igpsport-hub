@@ -25,7 +25,7 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
   const filtered = app.rows.filter((a) =>
     `${a.title} ${a.sourceDateTime || ''}`.toLowerCase().includes(app.query.toLowerCase()),
   );
-  const visible = app.unsyncedOnly ? filtered.filter(eligible) : filtered;
+  const visible = filtered;
 
   return (
     <>
@@ -35,7 +35,7 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
           <h1>Your activities</h1>
           <p className="subtitle">
             {tab === 'igpsport'
-              ? 'Choose a ride. Keep the original data. Send it to Garmin.'
+              ? 'Choose a ride to copy to your Garmin.'
               : 'Browse the activities in your Garmin account.'}
           </p>
         </div>
@@ -137,38 +137,12 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
             >
               {app.loading ? 'Refreshing…' : '↻ Refresh'}
             </AsyncButton>
-            {tab === 'igpsport' && (
-              <>
-                <button
-                  className="secondary"
-                  aria-pressed={app.unsyncedOnly}
-                  disabled={app.loading || app.busy}
-                  onClick={() => app.setUnsyncedOnly(!app.unsyncedOnly)}
-                >
-                  Unsynced only
-                </button>
-                <button
-                  className="secondary"
-                  disabled={app.loading || app.busy || !filtered.some(eligible)}
-                  onClick={() =>
-                    app.setSelected(
-                      filtered
-                        .filter(eligible)
-                        .slice(0, MAX_BATCH)
-                        .map((a) => a.id),
-                    )
-                  }
-                >
-                  Select unsynced
-                </button>
-              </>
-            )}
           </div>
 
           <div className="list-meta">
             <span>
               {visible.length} {visible.length === 1 ? 'activity' : 'activities'}
-              {app.query ? ' matching' : app.unsyncedOnly ? ' unsynced' : ' loaded'}
+              {app.query ? ' matching' : ' loaded'}
             </span>
             {session?.checkedAt && (
               <span>
@@ -190,26 +164,15 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
             </div>
           ) : !visible.length ? (
             <div className="empty">
-              <h3>
-                {app.query
-                  ? 'No matching activities'
-                  : app.unsyncedOnly
-                    ? 'All caught up'
-                    : 'No activities yet'}
-              </h3>
+              <h3>{app.query ? 'No matching activities' : 'No activities yet'}</h3>
               <p>
                 {app.query
                   ? 'Try a different name or date.'
-                  : app.unsyncedOnly
-                    ? 'Every loaded ride is already synced or awaiting its status check.'
-                    : 'Activities will appear here after they are available in your account.'}
+                  : 'Activities will appear here after they are available in your account.'}
               </p>
-              {(app.query || app.unsyncedOnly) && (
-                <button
-                  className="secondary"
-                  onClick={() => (app.query ? app.setQuery('') : app.setUnsyncedOnly(false))}
-                >
-                  {app.query ? 'Clear search' : 'Show all rides'}
+              {app.query && (
+                <button className="secondary" onClick={() => app.setQuery('')}>
+                  Clear search
                 </button>
               )}
             </div>

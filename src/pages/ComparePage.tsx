@@ -76,7 +76,6 @@ export function ComparePage() {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
-              {app.compare.capped ? ' · newest 5 pages' : ''}
             </span>
             <AsyncButton
               busy={app.compareLoading}

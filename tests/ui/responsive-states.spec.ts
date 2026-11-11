@@ -35,7 +35,9 @@ async function mock(
     await route.fulfill({ json: body });
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Check connections', exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Check my connections', exact: true }),
+  ).toBeEnabled();
 }
 
 for (const width of [320, 390]) {
@@ -125,7 +127,7 @@ for (const width of [320, 390]) {
       await route.fulfill({ json: body });
     });
     await page.goto('/');
-    await expect(page.getByRole('button', { name: 'Check connections' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Check my connections' })).toBeEnabled();
     for (const theme of ['light', 'dark']) {
       const toggle = page.getByRole('button', { name: `Switch to ${theme} theme` });
       if (await toggle.count()) await toggle.click();

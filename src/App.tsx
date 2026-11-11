@@ -30,7 +30,6 @@ export default function App() {
   const [more, setMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
-  const [unsyncedOnly, setUnsyncedOnly] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<Activity>();
   const [detailBusy, setDetailBusy] = useState(false);
@@ -189,7 +188,6 @@ export default function App() {
     setRows([]);
     setQuery('');
     setSelected([]);
-    setUnsyncedOnly(false);
     setError('');
     setNotice('');
     setLoading(false);
@@ -434,8 +432,6 @@ export default function App() {
     hasMore: more,
     query,
     setQuery,
-    unsyncedOnly,
-    setUnsyncedOnly,
     selected,
     setSelected,
     toggleSelect: (id, checked) =>

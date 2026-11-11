@@ -67,7 +67,9 @@ async function fixture(page: Page, connected = true, outcome = 'confirmed', scop
     await route.fulfill({ json: body });
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Check connections', exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Check my connections', exact: true }),
+  ).toBeEnabled();
   return { uploads: () => uploads };
 }
 
@@ -243,8 +245,10 @@ test('navigation, refresh, clear selection, Garmin details and disconnect', asyn
   );
   await page.getByRole('button', { name: 'Close dialog' }).click();
   await page.getByRole('button', { name: 'iGPSPORT Hub home' }).click();
-  await page.getByRole('button', { name: 'Check connections', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Check connections', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Check my connections', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Check my connections', exact: true }),
+  ).toBeEnabled();
   await page.getByRole('button', { name: 'Disconnect', exact: true }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: 'Disconnect', exact: true }).click();
   await expect(
@@ -446,7 +450,8 @@ test('bulk selection caps at five and transfers sequentially', async ({ page }) 
     });
   });
   await page.getByRole('button', { name: 'iGPSPORT connected', exact: true }).click();
-  await page.getByRole('button', { name: 'Select unsynced', exact: true }).click();
+  const boxes = page.getByRole('checkbox');
+  for (let i = 0; i < 5; i += 1) await boxes.nth(i).click();
   await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(5);
   await expect(page.getByRole('checkbox', { checked: false }).first()).toBeDisabled();
   await page.getByRole('button', { name: /Send.*Garmin/ }).click();

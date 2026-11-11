@@ -43,8 +43,6 @@ export interface AppState {
   hasMore: boolean;
   query: string;
   setQuery: (value: string) => void;
-  unsyncedOnly: boolean;
-  setUnsyncedOnly: (value: boolean) => void;
   selected: string[];
   setSelected: (ids: string[]) => void;
   toggleSelect: (id: string, checked: boolean) => void;
