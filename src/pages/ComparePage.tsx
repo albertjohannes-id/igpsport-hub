@@ -19,9 +19,7 @@ export function ComparePage() {
       <div className="page-head">
         <div>
           <h1>Compare your rides.</h1>
-          <p className="subtitle">
-            See which iGPSPORT rides are missing from Garmin, and which are probably already there.
-          </p>
+          <p className="subtitle">See which iGPSPORT rides are not yet in Garmin.</p>
         </div>
       </div>
 
