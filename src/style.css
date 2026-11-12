@@ -1128,6 +1128,25 @@ form input {
   line-height: 1.7;
   margin: 18px 0;
 }
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0;
+  cursor: pointer;
+}
+.check-row input[type='checkbox'] {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+.check-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.check-row small {
+  color: var(--muted);
+}
 .full {
   width: 100%;
 }

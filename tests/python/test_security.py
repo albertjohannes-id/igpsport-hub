@@ -18,6 +18,10 @@ class SecurityTests(unittest.TestCase):
                 validate_payload('transfer', {'id': identifier})
         validate_payload('login', {'username': 'test@example.invalid', 'password': 'valid input'})
         validate_payload('transfer', {'id': '123'})
+        validate_payload('transfer', {'id': '123', 'fixZones': True})
+        for flag in ('1', 1, None, []):
+            with self.assertRaises(RequestError):
+                validate_payload('transfer', {'id': '123', 'fixZones': flag})
 
     def test_limiter_expires_window(self):
         limiter = RateLimiter()

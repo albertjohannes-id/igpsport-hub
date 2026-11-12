@@ -1,9 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { AsyncButton, Spinner } from './components';
 import { EyeIcon, EyeOffIcon } from './icons';
 import { useApp } from './app-context';
-import { dateLabel, duration, durationLabel, eligible, metric, names } from './format';
+import { downloadFit } from './api';
+import {
+  dateLabel,
+  duration,
+  durationLabel,
+  eligible,
+  errorMessage,
+  metric,
+  names,
+} from './format';
 
 function Modal({
   title,
@@ -46,6 +55,23 @@ function Modal({
 
 export function Modals() {
   const app = useApp();
+  const [fitBusy, setFitBusy] = useState(false);
+  const [fitError, setFitError] = useState('');
+  const [fixZones, setFixZones] = useState(true);
+
+  // TEMP debug: save the original FIT of the open detail for HR-zone inspection.
+  async function downloadDetailFit() {
+    if (!app.detail) return;
+    setFitBusy(true);
+    setFitError('');
+    try {
+      await downloadFit(app.detail.id);
+    } catch (error) {
+      setFitError(errorMessage(error));
+    } finally {
+      setFitBusy(false);
+    }
+  }
 
   return (
     <>
@@ -202,6 +228,22 @@ export function Modals() {
               <p className="detail-note">
                 The original FIT file is transferred. Your iGPSPORT activity stays in place.
               </p>
+              {fitError && (
+                <div className="alert" role="alert">
+                  {fitError}
+                </div>
+              )}
+              {app.status?.mode === 'local' && (
+                <AsyncButton
+                  busy={fitBusy}
+                  busyLabel="Downloading FIT…"
+                  className="secondary full"
+                  disabled={app.busy || app.detailBusy}
+                  onClick={() => void downloadDetailFit()}
+                >
+                  ↓ Download FIT (debug)
+                </AsyncButton>
+              )}
               {['received', 'unconfirmed'].includes(app.detail.syncStatus) ? (
                 <AsyncButton
                   busy={app.busy}
@@ -263,6 +305,19 @@ export function Modals() {
           <p className="form-note">
             Rides are sent one at a time. Keep the page open until verification finishes.
           </p>
+          {app.status?.mode === 'local' && (
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={fixZones}
+                onChange={(event) => setFixZones(event.target.checked)}
+              />
+              <span>
+                Shift HR-zone times for Garmin
+                <small>Restores the missing Zone 1 in the Time in Zones chart.</small>
+              </span>
+            </label>
+          )}
           <div className="dialog-actions">
             <button className="secondary" disabled={app.busy} onClick={() => app.setConfirm([])}>
               Cancel
@@ -272,7 +327,7 @@ export function Modals() {
               busyLabel="Transferring and verifying…"
               className="primary"
               disabled={app.busy}
-              onClick={() => app.runTransfer(app.confirm)}
+              onClick={() => app.runTransfer(app.confirm, fixZones)}
             >
               {app.busy ? 'Transferring and verifying…' : 'Confirm transfer'}
             </AsyncButton>

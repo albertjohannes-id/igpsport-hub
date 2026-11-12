@@ -32,6 +32,7 @@ export type Transfer = {
   activityId: string | null;
   at: number;
   receipt?: string;
+  zoneFix?: boolean;
 };
 export type Status = {
   mode: 'local' | 'cloud-preview' | 'hosted-test';
@@ -215,4 +216,35 @@ export function api<T>(
   const next = queue.then(run, run);
   queue = next.catch(() => undefined);
   return next;
+}
+
+// TEMP debug: save the ride's original FIT file for offline inspection.
+export async function downloadFit(id: string): Promise<void> {
+  const response = await fetch('/api/igpsport/fit?id=' + encodeURIComponent(id), {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: { 'X-Apex-Client': 'local-web' },
+  });
+  if (!response.ok) {
+    let message = 'FIT download failed. Please try again.';
+    try {
+      const data = (await response.json()) as { error?: string };
+      if (data.error) message = data.error;
+    } catch {
+      // keep the default message
+    }
+    throw new ApiError(message, response.status);
+  }
+  const blob = await response.blob();
+  const name =
+    /^attachment; filename="(.+)"$/.exec(response.headers.get('Content-Disposition') || '')?.[1] ||
+    'ride-' + id + '.fit';
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

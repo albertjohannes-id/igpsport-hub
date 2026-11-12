@@ -81,6 +81,119 @@ class WebApiTests(unittest.TestCase):
         self.assertEqual(error.exception.code, 'CHECK_FIRST')
         client.upload_activity.assert_not_called()
 
+    def _mini_fit(self, slots=(3000, 2000, 1000, 0, 0), zone_field=65):
+        import struct
+        from fitdecode.utils import compute_crc
+        definition = bytes([0x40, 0x00, 0x00]) + struct.pack('<HB', 18, 1)
+        definition += struct.pack('<3B', zone_field, 20, 0x86)
+        record = bytes([0x00]) + struct.pack('<5I', *slots)
+        body = definition + record
+        header = bytearray(14)
+        header[0] = 14
+        header[1] = 0x10
+        header[2:4] = struct.pack('<H', 2110)
+        header[4:8] = struct.pack('<I', len(body))
+        header[8:12] = b'.FIT'
+        header[12:14] = struct.pack('<H', compute_crc(bytes(header[:12])))
+        return bytes(header) + body + struct.pack('<H', compute_crc(bytes(header) + body))
+
+    def _hr_zone_fields(self, content):
+        import fitdecode
+        import io
+        with fitdecode.FitReader(io.BytesIO(content)) as reader:
+            return [field.raw_value for frame in reader if isinstance(frame, fitdecode.FitDataMessage)
+                    for field in frame.fields if field.name == 'time_in_hr_zone']
+
+    def test_shift_hr_zones_moves_slots_up_one(self):
+        import struct
+        from fitdecode.utils import compute_crc
+        from web_api import shift_hr_zones
+        original = self._mini_fit()
+        shifted, changed = shift_hr_zones(original)
+        self.assertTrue(changed)
+        self.assertEqual(len(shifted), len(original))
+        self.assertEqual(struct.unpack_from('<5I', shifted, 24), (0, 3000, 2000, 1000, 0))
+        self.assertEqual(compute_crc(shifted[:-2]), struct.unpack_from('<H', shifted, len(shifted) - 2)[0])
+        self.assertEqual(self._hr_zone_fields(shifted), [(0.0, 3000.0, 2000.0, 1000.0, 0.0)])
+        self.assertEqual(self._hr_zone_fields(original), [(3000.0, 2000.0, 1000.0, 0.0, 0.0)])
+
+    def test_shift_hr_zones_leaves_files_without_zone_time_unchanged(self):
+        from web_api import shift_hr_zones
+        for slots, field in (((0, 0, 0, 0, 0), 65), ((3000, 2000, 0, 0, 0), 66)):
+            source = self._mini_fit(slots, zone_field=field)
+            content, changed = shift_hr_zones(source)
+            self.assertFalse(changed, f'slots={slots} field={field}')
+            self.assertEqual(content, source)
+
+    def test_shift_hr_zones_survives_malformed_bytes(self):
+        from web_api import shift_hr_zones
+        for junk in (b'', b'\x0e\x00', b'\x0e' + b'\xff' * 40, self._mini_fit()[:30], self._mini_fit() + b'\x00'):
+            content, changed = shift_hr_zones(junk)
+            self.assertFalse(changed)
+            self.assertEqual(content, junk)
+
+    def test_transfer_with_fix_zones_uploads_shifted_fit(self):
+        import struct
+        from datetime import datetime, timezone
+        from pathlib import Path
+        original = self._mini_fit()
+        client = Mock()
+        client.upload_activity.return_value = {'detailedImportResult': {'successes': [{'internalId': '77'}], 'failures': []}}
+        captured = {}
+
+        def record_upload(path):
+            captured['bytes'] = Path(path).read_bytes()
+            return client.upload_activity.return_value
+
+        client.upload_activity.side_effect = record_upload
+        response = Mock()
+        response.is_redirect = False
+        response.iter_content.return_value = [original]
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        summary = {'start': datetime(2026, 1, 2, 6, 0, tzinfo=timezone.utc), 'duration': 3600.0, 'distance': 30000.0}
+        with patch.object(self.service, 'identity'), patch.object(self.service, 'load', return_value=client), \
+             patch.object(self.service, 'igps_get', return_value={'fitUrl': 'https://fit.example.invalid/1', 'title': 'Ride'}), \
+             patch('web_api.validate_fit_url', return_value='https://fit.example.invalid/1'), \
+             patch('web_api.requests.get', return_value=response), \
+             patch('web_api.fit_summary', return_value=summary), \
+             patch('web_api.fetch_candidates', return_value=[]):
+            result = self.service.transfer('1', fix_zones=True)
+        self.assertEqual(result['state'], 'confirmed')
+        self.assertTrue(result['zoneFix'])
+        self.assertEqual(struct.unpack_from('<5I', captured['bytes'], 24), (0, 3000, 2000, 1000, 0))
+
+    def test_transfer_without_fix_zones_uploads_original_fit(self):
+        import struct
+        from datetime import datetime, timezone
+        from pathlib import Path
+        original = self._mini_fit()
+        client = Mock()
+        client.upload_activity.return_value = {'detailedImportResult': {'successes': [{'internalId': '77'}], 'failures': []}}
+        captured = {}
+
+        def record_upload(path):
+            captured['bytes'] = Path(path).read_bytes()
+            return client.upload_activity.return_value
+
+        client.upload_activity.side_effect = record_upload
+        response = Mock()
+        response.is_redirect = False
+        response.iter_content.return_value = [original]
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        summary = {'start': datetime(2026, 1, 2, 6, 0, tzinfo=timezone.utc), 'duration': 3600.0, 'distance': 30000.0}
+        with patch.object(self.service, 'identity'), patch.object(self.service, 'load', return_value=client), \
+             patch.object(self.service, 'igps_get', return_value={'fitUrl': 'https://fit.example.invalid/1', 'title': 'Ride'}), \
+             patch('web_api.validate_fit_url', return_value='https://fit.example.invalid/1'), \
+             patch('web_api.requests.get', return_value=response), \
+             patch('web_api.fit_summary', return_value=summary), \
+             patch('web_api.fetch_candidates', return_value=[]):
+            result = self.service.transfer('1')
+        self.assertEqual(result['state'], 'confirmed')
+        self.assertNotIn('zoneFix', result)
+        self.assertEqual(struct.unpack_from('<5I', captured['bytes'], 24), (3000, 2000, 1000, 0, 0))
+
     def test_history_does_not_return_internal_matching_data(self):
         self.service.scope = 'scope'
         self.service.history = [{'sourceId': '1', 'scope': 'scope', 'state': 'confirmed', 'activityId': '2', 'summary': {'private': 'value'}, 'before': []}]

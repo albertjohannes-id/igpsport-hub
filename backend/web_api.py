@@ -5,6 +5,7 @@ import json
 import logging
 from pathlib import Path
 import re
+import struct
 import tempfile
 import threading
 import time
@@ -14,6 +15,7 @@ import requests
 from session_trial import AUTH, ROOT, IGPSportClient, Garmin, save
 from activities import normalize_activity
 from diagnostics import Trace
+from fitdecode.utils import compute_crc
 from verification import fit_summary, fetch_candidates, matches, verify
 from upload_result import classify
 from security import RequestError, RateLimiter, validate_payload, validate_fit_url
@@ -25,6 +27,88 @@ logging.disable(logging.CRITICAL)
 class ApiError(Exception):
     def __init__(self, message, status=400, code='REQUEST_FAILED'):
         self.message, self.status, self.code = message, status, code
+
+
+def shift_hr_zones(content):
+    """Shift the session message's time_in_hr_zone values up one slot.
+
+    iGPSPORT writes its five HR-zone times into the FIT session field
+    time_in_hr_zone slots 0-4, while Garmin reads slots 1-4 as its Zones 1-4
+    and discards slot 0 ("below zone 1"). The result is that iGPSPORT's lowest
+    zone disappears on Garmin and every other zone shifts down one row. This
+    rewrites the five slot values in place (same byte width), writes 0 into
+    the discarded slot 0 and recomputes the footer CRC. Every other byte of
+    the file stays identical. Garmin then shows iGPSPORT's Zones 1-4 as its
+    Zones 1-4; Zone 5's time has no slot left and is dropped from the chart.
+
+    Returns (content, shifted). Never raises: any unexpected file layout
+    returns the original content unchanged, and the upload proceeds as before.
+    """
+    try:
+        data = bytes(content)
+        if len(data) < 16 or data[0] != 0x0E:
+            return content, False
+        definitions = {}  # local num -> (mesg, [(field num, byte size)])
+        session_offset = None  # file offset of the time_in_hr_zone values
+        offset = 14
+        while offset < len(data) - 2:
+            header = data[offset]
+            if header & 0x80:  # compressed timestamp record (1-byte header)
+                local = (header >> 5) & 0x3
+                layout = definitions.get(local)
+                if layout is None:
+                    return content, False
+                timestamp = next((size for num, size in layout if num == 0), 0)
+                offset += 2 + sum(size for _, size in layout) - timestamp
+                continue
+            if header & 0x40:  # definition message
+                local = header & 0x0F
+                architecture = data[offset + 2]
+                if architecture != 0:
+                    return content, False  # big-endian layout: stay untouched
+                message, field_count = struct.unpack_from('<2xHB', data, offset + 1)
+                layout = []
+                position = offset + 6
+                for _ in range(field_count):
+                    layout.append((data[position], data[position + 1]))
+                    position += 3
+                if header & 0x20:  # developer data definitions follow
+                    dev_count = data[position]
+                    position += 1
+                    if dev_count and message == 18:
+                        return content, False  # developer data: stay untouched
+                    for _ in range(dev_count):
+                        layout.append((None, data[position + 1]))
+                        position += 3
+                definitions[local] = (message, layout)
+                offset = position
+                continue
+            local = header & 0x0F  # plain data message
+            definition = definitions.get(local)
+            if definition is None:
+                return content, False
+            message, layout = definition
+            sizes = [size for _, size in layout]
+            if message == 18:
+                numbers = [num for num, _ in layout]
+                if 65 in numbers:
+                    position = offset + 1 + sum(sizes[:numbers.index(65)])
+                    if layout[numbers.index(65)][1] == 20:
+                        if session_offset is not None:
+                            return content, False  # more than one session: ambiguous
+                        session_offset = position
+            offset += 1 + sum(sizes)
+        if session_offset is None or offset != len(data) - 2:
+            return content, False
+        values = struct.unpack_from('<5I', data, session_offset)
+        if values[0] == 0:
+            return content, False  # already fixed, or no Zone 1 time at all
+        shifted = bytearray(data)
+        struct.pack_into('<5I', shifted, session_offset, 0, *values[:4])
+        struct.pack_into('<H', shifted, len(data) - 2, compute_crc(bytes(shifted[:-2])))
+        return bytes(shifted), True
+    except Exception:
+        return content, False
 
 
 class Service:
@@ -97,10 +181,8 @@ class Service:
         if not self.browser_store:
             save(self.history_path, self.history)
 
-    def ride_summary(self, identifier):
-        """Fetch the activity detail and download its FIT with limits."""
-        detail = self.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
-        url = validate_fit_url(detail.get('fitUrl'))
+    @staticmethod
+    def download_fit(url):
         content = bytearray()
         with requests.get(url, timeout=(10, 30), stream=True, allow_redirects=False) as response:
             if response.is_redirect:
@@ -111,7 +193,20 @@ class Service:
                 content.extend(chunk)
                 if len(content) > 50 * 1024 * 1024 or time.monotonic() - started > 120:
                     raise ApiError('FIT download exceeded its size or time limit.')
+        return bytes(content)
+
+    def ride_summary(self, identifier):
+        """Fetch the activity detail and download its FIT with limits."""
+        detail = self.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
+        content = self.download_fit(validate_fit_url(detail.get('fitUrl')))
         return str(detail.get('title') or 'Ride')[:500], fit_summary(content), content
+
+    def fit_file(self, identifier):
+        """TEMP debug: return the ride's original FIT bytes for local inspection."""
+        detail = self.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
+        content = self.download_fit(validate_fit_url(detail.get('fitUrl')))
+        name = re.sub(r'[^\w.-]+', '_', str(detail.get('title') or 'Ride')).strip('._')[:60] or 'ride'
+        return f'{name}-{identifier}.fit', content
 
     def transfer_result(self, entry):
         result = {k: v for k, v in entry.items() if k not in ('scope', 'summary', 'before')}
@@ -244,7 +339,7 @@ class Service:
             raw['activityId'] = identifier
         return normalize_activity(provider, raw)
 
-    def transfer(self, identifier, check=False, receipt=None):
+    def transfer(self, identifier, check=False, receipt=None, fix_zones=False):
         self.identity()
         client = self.load('garmin')
         if self.browser_store and not self.scope:
@@ -270,10 +365,16 @@ class Service:
         if previous:
             raise ApiError('This upload is not confirmed yet. Use Check status before trying another upload.', 409, 'CHECK_FIRST')
         title, summary, content = self.ride_summary(identifier)
+        zone_fix = None
+        if fix_zones:
+            content, zone_fix = shift_hr_zones(content)
+            self.trace.emit('web.hr_zone_shift', {'identifier': identifier, 'shifted': bool(zone_fix)})
         before = fetch_candidates(client, summary)
         existing = [a for a in before if matches(a, summary)]
         entry = {'sourceId': identifier, 'title': title, 'state': 'received', 'activityId': None,
                  'at': time.time(), 'scope': self.scope, 'summary': summary | {'start': summary['start'].isoformat()}, 'before': [{'activityId': a['activityId']} for a in ([] if self.browser_store else before)]}
+        if fix_zones:
+            entry['zoneFix'] = bool(zone_fix)
         self.history.insert(0, entry)
         self.save_history()
         if check and not existing:
@@ -398,6 +499,18 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def respond_file(self, name, content):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/octet-stream')
+        self.send_header('Content-Disposition', 'attachment; filename="' + name + '"')
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+        self.send_header('Content-Length', str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
     def do_GET(self):
         self.route(False)
 
@@ -412,7 +525,7 @@ class Handler(BaseHTTPRequestHandler):
     def route(self, mutation):
         if len(self.path) > 2048 or len(self.headers.get_all('Host', [])) != 1:
             return self.respond({'error': 'Invalid request.'}, 400)
-        if self.headers.get('Host') not in ('127.0.0.1:8788', 'localhost:8788') or self.headers.get('X-Apex-Client') != 'local-web' or self.headers.get('Origin') not in (None, 'http://127.0.0.1:5173', 'http://localhost:5173') or self.headers.get('Sec-Fetch-Site') == 'cross-site':
+        if self.headers.get('Host') not in ('127.0.0.1:8788', 'localhost:8788') or self.headers.get('X-Apex-Client') != 'local-web' or self.headers.get('Origin') not in (None, 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://127.0.0.1:5174', 'http://localhost:5174') or self.headers.get('Sec-Fetch-Site') == 'cross-site':  # TEMP debug: 5174 origin while 5173 is busy; remove with the FIT debug button.
             return self.respond({'error': 'Request origin not allowed.'}, 403)
         provider = None
         try:
@@ -465,11 +578,17 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.service.activities(provider, page)
                 elif action == 'detail' and not mutation and re.fullmatch(r'[0-9]{1,20}', parts[3]):
                     result = self.service.detail(provider, parts[3])
+                elif action == 'fit' and not mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', parse_qs(url.query).get('id', [''])[0]):
+                    name, content = self.service.fit_file(parse_qs(url.query)['id'][0])
+                    return self.respond_file(name, content)
+                elif action == 'detaildebug' and not mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', parse_qs(url.query).get('id', [''])[0]):
+                    # TEMP debug: upstream detail JSON, for cross-checking zone arrays.
+                    return self.respond(self.service.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + parse_qs(url.query)['id'][0]))
                 elif action in ('transfer', 'check', 'tag') and mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', str(data.get('id', ''))):
                     if action == 'tag':
                         result = self.service.tag(str(data['id']))
                     else:
-                        result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'))
+                        result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'), bool(data.get('fixZones')))
                 else:
                     raise ApiError('Not found.', 404)
                 self.respond(result)

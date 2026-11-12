@@ -44,3 +44,6 @@ garmin_session/
 
 # Vercel project links and local deployment metadata
 .vercel/
+
+# Local HR-zone debugging FITs (contain real GPS/HR data, never commit)
+fit-debug/
