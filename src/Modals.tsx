@@ -3,17 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AsyncButton, Spinner } from './components';
 import { EyeIcon, EyeOffIcon } from './icons';
 import { useApp } from './app-context';
-import { downloadFit } from './api';
-import {
-  dateLabel,
-  duration,
-  durationLabel,
-  errorMessage,
-  metric,
-  names,
-  pending,
-  resendable,
-} from './format';
+import { dateLabel, duration, durationLabel, metric, names, pending, resendable } from './format';
 
 function Modal({
   title,
@@ -56,23 +46,7 @@ function Modal({
 
 export function Modals() {
   const app = useApp();
-  const [fitBusy, setFitBusy] = useState(false);
-  const [fitError, setFitError] = useState('');
   const [fixZones, setFixZones] = useState(true);
-
-  // TEMP debug: save the original FIT of the open detail for HR-zone inspection.
-  async function downloadDetailFit() {
-    if (!app.detail) return;
-    setFitBusy(true);
-    setFitError('');
-    try {
-      await downloadFit(app.detail.id);
-    } catch (error) {
-      setFitError(errorMessage(error));
-    } finally {
-      setFitBusy(false);
-    }
-  }
 
   return (
     <>
@@ -229,22 +203,6 @@ export function Modals() {
               <p className="detail-note">
                 The original FIT file is transferred. Your iGPSPORT activity stays in place.
               </p>
-              {fitError && (
-                <div className="alert" role="alert">
-                  {fitError}
-                </div>
-              )}
-              {app.status?.mode === 'local' && (
-                <AsyncButton
-                  busy={fitBusy}
-                  busyLabel="Downloading FIT…"
-                  className="secondary full"
-                  disabled={app.busy || app.detailBusy}
-                  onClick={() => void downloadDetailFit()}
-                >
-                  ↓ Download FIT (debug)
-                </AsyncButton>
-              )}
               {['received', 'unconfirmed'].includes(app.detail.syncStatus) ? (
                 <AsyncButton
                   busy={app.busy}

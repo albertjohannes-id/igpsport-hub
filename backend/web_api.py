@@ -201,13 +201,6 @@ class Service:
         content = self.download_fit(validate_fit_url(detail.get('fitUrl')))
         return str(detail.get('title') or 'Ride')[:500], fit_summary(content), content
 
-    def fit_file(self, identifier):
-        """TEMP debug: return the ride's original FIT bytes for local inspection."""
-        detail = self.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + identifier)
-        content = self.download_fit(validate_fit_url(detail.get('fitUrl')))
-        name = re.sub(r'[^\w.-]+', '_', str(detail.get('title') or 'Ride')).strip('._')[:60] or 'ride'
-        return f'{name}-{identifier}.fit', content
-
     def transfer_result(self, entry):
         result = {k: v for k, v in entry.items() if k not in ('scope', 'summary', 'before')}
         if self.browser_store:
@@ -499,18 +492,6 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def respond_file(self, name, content):
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/octet-stream')
-        self.send_header('Content-Disposition', 'attachment; filename="' + name + '"')
-        self.send_header('Cache-Control', 'no-store')
-        self.send_header('X-Content-Type-Options', 'nosniff')
-        self.send_header('X-Frame-Options', 'DENY')
-        self.send_header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
-        self.send_header('Content-Length', str(len(content)))
-        self.end_headers()
-        self.wfile.write(content)
-
     def do_GET(self):
         self.route(False)
 
@@ -525,7 +506,7 @@ class Handler(BaseHTTPRequestHandler):
     def route(self, mutation):
         if len(self.path) > 2048 or len(self.headers.get_all('Host', [])) != 1:
             return self.respond({'error': 'Invalid request.'}, 400)
-        if self.headers.get('Host') not in ('127.0.0.1:8788', 'localhost:8788') or self.headers.get('X-Apex-Client') != 'local-web' or self.headers.get('Origin') not in (None, 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://127.0.0.1:5174', 'http://localhost:5174') or self.headers.get('Sec-Fetch-Site') == 'cross-site':  # TEMP debug: 5174 origin while 5173 is busy; remove with the FIT debug button.
+        if self.headers.get('Host') not in ('127.0.0.1:8788', 'localhost:8788') or self.headers.get('X-Apex-Client') != 'local-web' or self.headers.get('Origin') not in (None, 'http://127.0.0.1:5173', 'http://localhost:5173') or self.headers.get('Sec-Fetch-Site') == 'cross-site':
             return self.respond({'error': 'Request origin not allowed.'}, 403)
         provider = None
         try:
@@ -578,12 +559,6 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.service.activities(provider, page)
                 elif action == 'detail' and not mutation and re.fullmatch(r'[0-9]{1,20}', parts[3]):
                     result = self.service.detail(provider, parts[3])
-                elif action == 'fit' and not mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', parse_qs(url.query).get('id', [''])[0]):
-                    name, content = self.service.fit_file(parse_qs(url.query)['id'][0])
-                    return self.respond_file(name, content)
-                elif action == 'detaildebug' and not mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', parse_qs(url.query).get('id', [''])[0]):
-                    # TEMP debug: upstream detail JSON, for cross-checking zone arrays.
-                    return self.respond(self.service.igps_get('/web-gateway/web-analyze/activity/queryActivityDetail/' + parse_qs(url.query)['id'][0]))
                 elif action in ('transfer', 'check', 'tag') and mutation and provider == 'igpsport' and re.fullmatch(r'[0-9]{1,20}', str(data.get('id', ''))):
                     if action == 'tag':
                         result = self.service.tag(str(data['id']))
