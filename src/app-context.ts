@@ -51,7 +51,7 @@ export interface AppState {
   openDetail: (activity: Activity) => void;
   prepare: (activities: Activity[]) => void;
   checkTransfer: (activity: Activity) => void;
-  runTransfer: (activities: Activity[], fixZones?: boolean) => void;
+  runTransfer: (activities: Activity[], fixZones?: boolean, force?: boolean) => void;
 
   compare?: Compare;
   compareLoading: boolean;

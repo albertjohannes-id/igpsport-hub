@@ -8,10 +8,11 @@ import {
   dateLabel,
   duration,
   durationLabel,
-  eligible,
   errorMessage,
   metric,
   names,
+  pending,
+  resendable,
 } from './format';
 
 function Modal({
@@ -264,14 +265,14 @@ export function Modals() {
                   disabled={
                     app.busy ||
                     app.detailBusy ||
-                    !eligible(app.detail) ||
+                    pending(app.detail) ||
                     !app.status?.capabilities.transfer
                   }
                   onClick={() => {
                     if (app.detail) app.prepare([app.detail]);
                   }}
                 >
-                  {eligible(app.detail) ? 'Send to Garmin' : 'Already synced'}
+                  {resendable(app.detail) ? 'Re-send to Garmin' : 'Send to Garmin'}
                 </button>
               )}
             </>
@@ -298,6 +299,27 @@ export function Modals() {
           busy={app.busy}
         >
           <p className="dialog-intro">{app.confirm.map((a) => a.title).join(', ')}</p>
+          {(() => {
+            const resends = app.confirm.filter(resendable);
+            if (!resends.length) return null;
+            const titles = resends.map((a) => a.title).join(', ');
+            return (
+              <p className="dialog-warning" role="alert">
+                {resends.length === 1 ? (
+                  <>
+                    <strong>{titles}</strong> is already recorded as synced in this session.
+                    Re-sending creates a second copy in Garmin unless the old one was removed.
+                  </>
+                ) : (
+                  <>
+                    <strong>{resends.length}</strong> of these rides are already recorded as synced
+                    in this session. Re-sending creates second copies in Garmin unless the old ones
+                    were removed.
+                  </>
+                )}
+              </p>
+            );
+          })()}
           <p>
             We’ll check for existing activities, transfer each original FIT file, then verify the
             result in Garmin.
@@ -327,7 +349,7 @@ export function Modals() {
               busyLabel="Transferring and verifying…"
               className="primary"
               disabled={app.busy}
-              onClick={() => app.runTransfer(app.confirm, fixZones)}
+              onClick={() => app.runTransfer(app.confirm, fixZones, app.confirm.some(resendable))}
             >
               {app.busy ? 'Transferring and verifying…' : 'Confirm transfer'}
             </AsyncButton>

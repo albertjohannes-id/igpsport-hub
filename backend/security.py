@@ -25,12 +25,15 @@ def validate_payload(action, data):
             if not isinstance(value, str) or not value.strip() or len(value) > limits[key] or '\x00' in value:
                 raise RequestError('Invalid login field.')
     elif action in ('transfer', 'check', 'tag'):
-        if not {'id'} <= set(data) <= {'id', 'receipt', 'fixZones'} or not isinstance(data['id'], str) or not re.fullmatch(r'[0-9]{1,20}', data['id']):
+        allowed = {'id', 'receipt', 'fixZones', 'force'} if action == 'transfer' else {'id', 'receipt'}
+        if not {'id'} <= set(data) <= allowed or not isinstance(data['id'], str) or not re.fullmatch(r'[0-9]{1,20}', data['id']):
             raise RequestError('A numeric activity ID is required.')
         if 'receipt' in data and (not isinstance(data['receipt'], str) or len(data['receipt']) > 6000):
             raise RequestError('Invalid transfer receipt.')
         if 'fixZones' in data and not isinstance(data['fixZones'], bool):
             raise RequestError('Invalid fixZones flag.')
+        if 'force' in data and not isinstance(data['force'], bool):
+            raise RequestError('Invalid force flag.')
     elif action == 'disconnect' and data:
         raise RequestError('Disconnect does not accept fields.')
 

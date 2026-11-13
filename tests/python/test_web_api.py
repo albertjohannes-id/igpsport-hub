@@ -194,6 +194,50 @@ class WebApiTests(unittest.TestCase):
         self.assertNotIn('zoneFix', result)
         self.assertEqual(struct.unpack_from('<5I', captured['bytes'], 24), (3000, 2000, 1000, 0, 0))
 
+    def test_transfer_with_force_uploads_again_after_synced_history(self):
+        import struct
+        from datetime import datetime, timezone
+        from pathlib import Path
+        original = self._mini_fit()
+        client = Mock()
+        client.upload_activity.return_value = {'detailedImportResult': {'successes': [{'internalId': '77'}], 'failures': []}}
+        captured = {}
+
+        def record_upload(path):
+            captured['bytes'] = Path(path).read_bytes()
+            return client.upload_activity.return_value
+
+        client.upload_activity.side_effect = record_upload
+        self.service.history = [{'sourceId': '1', 'scope': 'scope', 'state': 'existing', 'activityId': '55', 'summary': {'start': '2026-01-02T06:00:00+00:00', 'duration': 3600.0, 'distance': 30000.0}, 'before': []}]
+        self.service.scope = 'scope'
+        response = Mock()
+        response.is_redirect = False
+        response.iter_content.return_value = [original]
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        summary = {'start': datetime(2026, 1, 2, 6, 0, tzinfo=timezone.utc), 'duration': 3600.0, 'distance': 30000.0}
+        with patch.object(self.service, 'identity'), patch.object(self.service, 'load', return_value=client), \
+             patch.object(self.service, 'igps_get', return_value={'fitUrl': 'https://fit.example.invalid/1', 'title': 'Ride'}), \
+             patch('web_api.validate_fit_url', return_value='https://fit.example.invalid/1'), \
+             patch('web_api.requests.get', return_value=response), \
+             patch('web_api.fit_summary', return_value=summary), \
+             patch('web_api.fetch_candidates', return_value=[]):
+            result = self.service.transfer('1', force=True)
+        self.assertEqual(result['state'], 'confirmed')
+        client.upload_activity.assert_called_once()
+        self.assertEqual(self.service.history[0]['state'], 'confirmed')
+        self.assertEqual(len(self.service.history), 2)
+
+    def test_transfer_without_force_short_circuits_synced_history(self):
+        self.service.history = [{'sourceId': '1', 'scope': 'scope', 'state': 'existing', 'activityId': '55'}]
+        self.service.scope = 'scope'
+        client = Mock()
+        with patch.object(self.service, 'identity'), patch.object(self.service, 'load', return_value=client):
+            result = self.service.transfer('1')
+        self.assertEqual(result['state'], 'existing')
+        self.assertEqual(result['activityId'], '55')
+        client.upload_activity.assert_not_called()
+
     def test_history_does_not_return_internal_matching_data(self):
         self.service.scope = 'scope'
         self.service.history = [{'sourceId': '1', 'scope': 'scope', 'state': 'confirmed', 'activityId': '2', 'summary': {'private': 'value'}, 'before': []}]

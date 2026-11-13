@@ -1,6 +1,6 @@
 import { AsyncButton, ProviderLogo } from '../components';
 import { useApp } from '../app-context';
-import { dateLabel, duration, durationLabel, eligible, metric, names, syncLabel } from '../format';
+import { dateLabel, duration, durationLabel, metric, names, pending, syncLabel } from '../format';
 
 import { MAX_TRANSFER_BATCH as MAX_BATCH } from '../transfer';
 
@@ -191,7 +191,7 @@ export function ActivitiesPage({ tab }: { tab: 'igpsport' | 'garmin' }) {
                         checked={app.selected.includes(activity.id)}
                         disabled={
                           app.busy ||
-                          !eligible(activity) ||
+                          pending(activity) ||
                           (app.selected.length >= MAX_BATCH && !app.selected.includes(activity.id))
                         }
                         onChange={(e) => app.toggleSelect(activity.id, e.target.checked)}

@@ -50,6 +50,10 @@ export const syncLabel = (state: string) =>
 export const eligible = (a: Activity) =>
   !['confirmed', 'existing', 'received', 'unconfirmed'].includes(a.syncStatus);
 
+export const pending = (a: Activity) => ['received', 'unconfirmed'].includes(a.syncStatus);
+
+export const resendable = (a: Activity) => ['confirmed', 'existing'].includes(a.syncStatus);
+
 export const errorMessage = (error: unknown) =>
   error instanceof ApiError || error instanceof Error
     ? error.message

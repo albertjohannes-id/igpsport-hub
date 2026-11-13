@@ -323,7 +323,7 @@ export default function App() {
     setConfirm(activities);
   }
 
-  async function transfer(activities: Activity[], check = false, fixZones = false) {
+  async function transfer(activities: Activity[], check = false, fixZones = false, force = false) {
     if (busy || transferActive.current) return;
     if (!activities.length || activities.length > MAX_TRANSFER_BATCH) {
       setError(`Select between 1 and ${MAX_TRANSFER_BATCH} rides per transfer.`);
@@ -342,6 +342,7 @@ export default function App() {
         const next = await api<Transfer>(`/igpsport/${check ? 'check' : 'transfer'}`, {
           id: activity.id,
           ...(fixZones && !check ? { fixZones: true } : {}),
+          ...(force && !check ? { force: true } : {}),
         });
         setResult(next);
         if (next.state === 'unconfirmed' || next.state === 'received') {
@@ -457,7 +458,7 @@ export default function App() {
       ++detailVersion.current;
       void transfer([activity], true);
     },
-    runTransfer: (activities, fixZones) => void transfer(activities, false, fixZones),
+    runTransfer: (activities, fixZones, force) => void transfer(activities, false, fixZones, force),
     compare,
     compareLoading,
     loadCompare: () => void loadCompare(),

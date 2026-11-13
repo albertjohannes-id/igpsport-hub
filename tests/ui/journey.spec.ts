@@ -88,7 +88,23 @@ test('saved session, search, detail and explicit single upload confirmation', as
   await page.getByRole('button', { name: 'Confirm transfer' }).click();
   await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
   expect(state.uploads()).toBe(1);
-  await expect(page.getByRole('checkbox')).toBeDisabled();
+  await expect(page.getByRole('checkbox')).toBeEnabled();
+});
+
+test('already synced ride can be re-sent after an explicit warning', async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole('button', { name: 'iGPSPORT connected', exact: true }).click();
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Send to Garmin', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm transfer' }).click();
+  await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
+  expect(state.uploads()).toBe(1);
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Send to Garmin', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText(/already recorded as synced/)).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm transfer' }).click();
+  await expect(page.getByText('Your ride is in Garmin.')).toBeVisible();
+  expect(state.uploads()).toBe(2);
 });
 
 test('wrong login allows retry and clears password; dialog supports Escape', async ({ page }) => {

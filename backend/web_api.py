@@ -339,7 +339,7 @@ class Service:
             raw['activityId'] = identifier
         return normalize_activity(provider, raw)
 
-    def transfer(self, identifier, check=False, receipt=None, fix_zones=False):
+    def transfer(self, identifier, check=False, receipt=None, fix_zones=False, force=False):
         self.identity()
         client = self.load('garmin')
         if self.browser_store and not self.scope:
@@ -350,7 +350,7 @@ class Service:
                 raise ApiError('Transfer belongs to another account or activity.', 400)
             self.history = [entry]
         previous = next((h for h in self.history if h.get('scope') == self.scope and h['sourceId'] == identifier), None)
-        if previous and previous['state'] in ('confirmed', 'existing'):
+        if previous and previous['state'] in ('confirmed', 'existing') and not force:
             return self.transfer_result(previous)
         if check and not previous and not self.browser_store:
             raise ApiError('No previous transfer to check.')
@@ -362,7 +362,7 @@ class Service:
                 previous.update(state='confirmed', activityId=result)
                 self.save_history()
             return self.transfer_result(previous)
-        if previous:
+        if previous and not (force and previous['state'] in ('confirmed', 'existing')):
             raise ApiError('This upload is not confirmed yet. Use Check status before trying another upload.', 409, 'CHECK_FIRST')
         title, summary, content = self.ride_summary(identifier)
         zone_fix = None
@@ -588,7 +588,7 @@ class Handler(BaseHTTPRequestHandler):
                     if action == 'tag':
                         result = self.service.tag(str(data['id']))
                     else:
-                        result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'), bool(data.get('fixZones')))
+                        result = self.service.transfer(str(data['id']), action == 'check', data.get('receipt'), bool(data.get('fixZones')), bool(data.get('force')))
                 else:
                     raise ApiError('Not found.', 404)
                 self.respond(result)

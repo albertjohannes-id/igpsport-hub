@@ -1128,6 +1128,15 @@ form input {
   line-height: 1.7;
   margin: 18px 0;
 }
+.dialog-warning {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--tint);
+}
 .check-row {
   display: flex;
   align-items: flex-start;
