@@ -107,6 +107,24 @@ test('already synced ride can be re-sent after an explicit warning', async ({ pa
   expect(state.uploads()).toBe(2);
 });
 
+test("what's new dialog lists the changelog from the footer version and the help modal", async ({
+  page,
+}) => {
+  await fixture(page);
+  await page.getByRole('button', { name: "What's new in this version" }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('installed')).toBeVisible();
+  await expect(
+    dialog.getByText('Already synced rides can be selected', { exact: false }),
+  ).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await page.getByRole('button', { name: 'See how it works' }).click();
+  await page.getByRole('button', { name: "See what's new" }).click();
+  await expect(page.getByRole('dialog').getByText('v0.4.3', { exact: true })).toBeVisible();
+});
+
 test('wrong login allows retry and clears password; dialog supports Escape', async ({ page }) => {
   await fixture(page, false);
   await page.getByRole('button', { name: 'Connect account', exact: true }).click();

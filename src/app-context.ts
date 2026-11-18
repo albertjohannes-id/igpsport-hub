@@ -37,6 +37,9 @@ export interface AppState {
   helpOpen: boolean;
   openHelp: () => void;
   closeHelp: () => void;
+  changelogOpen: boolean;
+  openChangelog: () => void;
+  closeChangelog: () => void;
 
   rows: Activity[];
   loading: boolean;

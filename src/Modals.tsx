@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AsyncButton, Spinner } from './components';
 import { EyeIcon, EyeOffIcon } from './icons';
 import { useApp } from './app-context';
+import { changelog } from './changelog';
 import { dateLabel, duration, durationLabel, metric, names, pending, resendable } from './format';
 
 function Modal({
@@ -347,6 +348,46 @@ export function Modals() {
           <div className="dialog-actions">
             <button className="primary" onClick={app.closeHelp}>
               Got it
+            </button>
+          </div>
+          <p className="howto-hint">
+            Curious what changed recently?
+            <button
+              className="text-button"
+              onClick={() => {
+                app.closeHelp();
+                app.openChangelog();
+              }}
+            >
+              See what's new
+            </button>
+          </p>
+        </Modal>
+      )}
+
+      {app.changelogOpen && (
+        <Modal title="What's new" onClose={app.closeChangelog}>
+          <ul className="changelog-list">
+            {changelog.map((entry, index) => (
+              <li key={entry.version}>
+                <div className="changelog-version">
+                  <strong>v{entry.version}</strong>
+                  {index === 0 && entry.version === __APP_VERSION__ && (
+                    <span className="changelog-current">installed</span>
+                  )}
+                  {entry.date && <span className="changelog-date">{entry.date}</span>}
+                </div>
+                <ul>
+                  {entry.changes.map((change, line) => (
+                    <li key={line}>{change}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          <div className="dialog-actions">
+            <button className="primary" onClick={app.closeChangelog}>
+              Close
             </button>
           </div>
         </Modal>

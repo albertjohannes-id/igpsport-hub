@@ -47,6 +47,7 @@ export default function App() {
   const [compare, setCompare] = useState<Compare>();
   const [compareLoading, setCompareLoading] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [result, setResult] = useState<Transfer>();
@@ -429,6 +430,9 @@ export default function App() {
     helpOpen,
     openHelp: () => setHelpOpen(true),
     closeHelp: () => setHelpOpen(false),
+    changelogOpen,
+    openChangelog: () => setChangelogOpen(true),
+    closeChangelog: () => setChangelogOpen(false),
     rows,
     loading,
     hasMore: more,
