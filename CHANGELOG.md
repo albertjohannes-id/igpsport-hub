@@ -2,6 +2,10 @@
 
 Dates are UTC. Each entry matches a git tag (`v0.4.3` etc.) and a GitHub release.
 
+## Unreleased
+
+- Added separate recent-account suggestions for iGPSPORT and Garmin, with filtering, individual removal, clear-all, and an optional 90-day remember-account setting. Only successful logins save identifiers; passwords and MFA codes are never included.
+
 ## 0.4.4 — 2026-11-18
 
 - New "What's new" menu: the version line in the Home footer and a link inside the how-to guide open a dialog listing every version's changes, read directly from `CHANGELOG.md` at build time.

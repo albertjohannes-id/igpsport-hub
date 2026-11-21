@@ -34,3 +34,13 @@ Disconnect deletes that browser's provider cookie and any pending MFA. It does n
 Tests use synthetic tokens and mocked providers, never real uploads. Run `npm run test:python`, `npm run test:ui`, and `npm run build`. Physical iPhone/Android testing and a Workers-compatible provider implementation remain follow-up work; localhost on a phone refers to the phone, not this Mac.
 
 References: [authenticated encryption API](https://cryptography.io/en/latest/hazmat/primitives/aead/), [cookie attributes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie).
+
+## Recent login accounts
+
+The email/username field offers separate recent-account lists for iGPSPORT and Garmin. Clicking or focusing the field opens suggestions, typing filters them, and a new account can always be entered. Use Tab to reach suggestion and removal buttons; Escape closes the suggestions before closing the dialog.
+
+With **Remember account on this device** checked (the default), a successful login saves the identifier and last-successful-login timestamp in `localStorage` under `apex-recent-accounts`. Garmin is saved only after MFA succeeds. Each provider keeps at most five accounts, newest first. Passwords, MFA codes and session tokens are never included. Failed attempts do not save or refresh an entry. Unchecking the option removes that identifier after a successful connection.
+
+Entries expire 90 days after their last successful login. Expired entries are filtered and removed when the app starts or accesses the list; a closed app cannot run a timed deletion. Disconnecting or session expiry leaves these suggestions intact and does not extend their retention. Removing a suggestion or choosing **Clear recent accounts** affects only that provider's suggestions, not its connection or transfer history.
+
+This list is local to the site origin and browser profile; it does not sync. Clearing site data, browser eviction or closing private browsing can remove it sooner. Anyone using that browser profile can see the saved identifiers. Browser/password-manager autofill is independent and may still suggest a removed account. If browser storage is unavailable, login still works but remembering accounts may not.

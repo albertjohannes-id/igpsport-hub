@@ -11,6 +11,8 @@ import { api, ApiError, type Activity, type Provider, type Status, type Transfer
 import { AUTO_COMPARE_WAIT, COMPARE_PAGES, buildCompare, type Compare } from './compare';
 import { errorMessage, names } from './format';
 
+import { rememberAccount, forgetAccount, recentAccounts } from './recent-accounts';
+
 import { MAX_TRANSFER_BATCH } from './transfer';
 
 const providers: Provider[] = ['igpsport', 'garmin'];
@@ -36,6 +38,7 @@ export default function App() {
   const [detailError, setDetailError] = useState('');
   const [login, setLogin] = useState<Provider>();
   const [username, setUsername] = useState('');
+  const [rememberUsername, setRememberUsername] = useState(true);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
@@ -62,6 +65,7 @@ export default function App() {
   const transferActive = useRef(false);
 
   useEffect(() => {
+    recentAccounts('igpsport');
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('apex-theme', theme);
   }, [theme]);
@@ -249,6 +253,7 @@ export default function App() {
   function openLogin(provider: Provider) {
     setLogin(provider);
     setUsername('');
+    setRememberUsername(true);
     setPassword('');
     setShowPassword(false);
     setCode('');
@@ -272,6 +277,8 @@ export default function App() {
         return;
       }
       const provider = login;
+      if (rememberUsername) rememberAccount(provider, username);
+      else forgetAccount(provider, username);
       setLogin(undefined);
       await refreshStatus();
       setNotice(`${names[provider]} connected. Your session is remembered in this browser.`);
@@ -473,6 +480,8 @@ export default function App() {
     },
     login,
     loginMfa: mfa,
+    rememberUsername,
+    setRememberUsername,
     username,
     setUsername,
     password,

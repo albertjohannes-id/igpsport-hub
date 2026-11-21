@@ -1292,3 +1292,31 @@ dd small {
     scroll-behavior: auto !important;
   }
 }
+
+.recent-account-field {
+  position: relative;
+}
+.recent-account-list {
+  position: absolute;
+  inset: 100% 0 auto;
+  z-index: 2;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0002;
+}
+.recent-account-row {
+  display: flex;
+  gap: 8px;
+  margin-block: 4px;
+}
+.recent-account-choice {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.recent-account-list button {
+  min-height: 44px;
+}

@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { AsyncButton, Spinner } from './components';
 import { EyeIcon, EyeOffIcon } from './icons';
 import { useApp } from './app-context';
+import { AccountField } from './AccountField';
 import { changelog } from './changelog';
 import { dateLabel, duration, durationLabel, metric, names, pending, resendable } from './format';
 
@@ -82,16 +83,24 @@ export function Modals() {
               </label>
             ) : (
               <>
-                <label>
-                  Email or username
+                <AccountField
+                  key={app.login}
+                  provider={app.login}
+                  value={app.username}
+                  onChange={app.setUsername}
+                />
+                <label className="check-row">
                   <input
-                    autoFocus
-                    autoComplete="username"
-                    value={app.username}
-                    onChange={(e) => app.setUsername(e.target.value)}
-                    required
+                    type="checkbox"
+                    checked={app.rememberUsername}
+                    onChange={(event) => app.setRememberUsername(event.target.checked)}
                   />
+                  Remember account on this device
                 </label>
+                <p className="form-note">
+                  Remembers your email or username only, for 90 days after a successful login.
+                  Uncheck to forget this account after connecting.
+                </p>
                 <label>
                   Password
                   <span className="password-field">

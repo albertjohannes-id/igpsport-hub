@@ -63,6 +63,8 @@ export interface AppState {
 
   login?: Provider;
   loginMfa: boolean;
+  rememberUsername: boolean;
+  setRememberUsername: (value: boolean) => void;
   username: string;
   setUsername: (value: string) => void;
   password: string;

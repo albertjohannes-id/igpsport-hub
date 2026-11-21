@@ -24,7 +24,7 @@ A fresh checkout needs Node/npm, Python 3.12+, `npm ci`, a `.venv` with `pip ins
 
 ## Current scope
 
-- Local: provider sessions, login/MFA UI, normalized lists/details, explicit transfer confirmation, duplicate matching and delayed-result verification.
+- Local: provider sessions, login/MFA UI with optional browser-local recent accounts (five per provider, retained for 90 days after successful login), normalized lists/details, explicit transfer confirmation, duplicate matching and delayed-result verification.
 - PWA: manifest, install icons, standalone display, safe offline notice. The service worker never caches API responses or queues uploads. Recent transfer history is stored in browser localStorage.
 - Cloudflare: deployable interface preview, restrictive security headers, disabled account operations. **Cloud provider integration is not implemented. V1 uses client-held encrypted sessions and browser-local history; no D1 is needed.**
 - Hosted (Vercel Python): connection, activity browsing and explicit single-ride transfer test with the same client-held encrypted sessions and browser-local receipts. See [hosted operations](docs/OPERATIONS.md).

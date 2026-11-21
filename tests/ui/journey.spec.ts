@@ -541,3 +541,110 @@ test('bulk selection caps at five and transfers sequentially', async ({ page }) 
     'https://github.com/albertjohannes-id/igpsport-hub',
   );
 });
+
+test('recent accounts filter, expire, stay separate and can be forgotten', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'apex-recent-accounts',
+      JSON.stringify({
+        igpsport: [
+          { username: 'recent@example.invalid', lastUsed: Date.now() },
+          { username: 'old@example.invalid', lastUsed: Date.now() - 91 * 86400000 },
+        ],
+        garmin: [{ username: 'garmin@example.invalid', lastUsed: Date.now() }],
+      }),
+    );
+  });
+  await fixture(page, false);
+  await page.getByRole('button', { name: 'Connect account', exact: true }).click();
+  await page.getByLabel('Email or username').click();
+  await expect(
+    page.getByRole('button', { name: 'recent@example.invalid', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'old@example.invalid', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole('button', { name: 'garmin@example.invalid', exact: true }),
+  ).toHaveCount(0);
+  await page.getByLabel('Email or username').fill('new');
+  await expect(page.getByText('No matching recent accounts.', { exact: false })).toBeVisible();
+  await page.getByLabel('Email or username').fill('');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Email or username')).toHaveValue('recent@example.invalid');
+  await page.getByLabel('Email or username').click();
+  await page.getByRole('button', { name: 'Forget recent@example.invalid' }).click();
+  const saved = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('apex-recent-accounts')!),
+  );
+  expect(saved.igpsport).toEqual([]);
+  expect(saved.garmin).toHaveLength(1);
+});
+
+test('recent account is saved only after success and opt-out forgets it', async ({ page }) => {
+  await fixture(page, false);
+  await page.getByRole('button', { name: 'Connect account', exact: true }).click();
+  await page.getByLabel('Email or username').fill('test@example.invalid');
+  await page.getByLabel('Password', { exact: true }).fill('secret');
+  await page.getByLabel('Password', { exact: true }).press('Enter');
+  await expect(page.getByRole('alert')).toContainText('Incorrect');
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('apex-recent-accounts')!).igpsport),
+  ).toEqual([]);
+  await page.getByLabel('Password', { exact: true }).fill('secret');
+  await page.getByLabel('Password', { exact: true }).press('Enter');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const saved = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('apex-recent-accounts')!).igpsport,
+  );
+  expect(saved).toEqual([{ username: 'test@example.invalid', lastUsed: expect.any(Number) }]);
+  await fixture(page, false);
+  await page.route('**/api/igpsport/login', (route) =>
+    route.fulfill({ json: { connected: true } }),
+  );
+  await page.getByRole('button', { name: 'Connect account', exact: true }).click();
+  await page.getByLabel('Email or username').click();
+  await page.getByRole('button', { name: 'test@example.invalid', exact: true }).click();
+  await page.getByLabel('Remember account on this device').uncheck();
+  await page.getByLabel('Password', { exact: true }).fill('secret');
+  await page.getByLabel('Password', { exact: true }).press('Enter');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('apex-recent-accounts')!).igpsport),
+  ).toEqual([]);
+});
+
+test('Garmin recent accounts wait for MFA success', async ({ page }) => {
+  await fixture(page, false);
+  await page.route('**/api/status', (route) =>
+    route.fulfill({
+      json: {
+        mode: 'local',
+        capabilities: { login: true, transfer: true },
+        sessions: { igpsport: { state: 'connected' }, garmin: { state: 'disconnected' } },
+        history: [],
+      },
+    }),
+  );
+  await page.route('**/api/garmin/login', (route) =>
+    route.fulfill({
+      json: route.request().postDataJSON().code ? { connected: true } : { needsMfa: true },
+    }),
+  );
+  await page.reload();
+  await page.getByRole('button', { name: 'Connect account', exact: true }).click();
+  await page.getByLabel('Email or username').fill('garmin@example.invalid');
+  await page.getByLabel('Password', { exact: true }).fill('secret');
+  await page.getByLabel('Password', { exact: true }).press('Enter');
+  await expect(page.getByLabel('Verification code')).toBeVisible();
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('apex-recent-accounts')!).garmin),
+  ).toEqual([]);
+  await page.getByLabel('Verification code').fill('123456');
+  await page.getByLabel('Verification code').press('Enter');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('apex-recent-accounts')!).garmin),
+  ).toEqual([{ username: 'garmin@example.invalid', lastUsed: expect.any(Number) }]);
+});
