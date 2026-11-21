@@ -107,11 +107,11 @@ test('already synced ride can be re-sent after an explicit warning', async ({ pa
   expect(state.uploads()).toBe(2);
 });
 
-test("what's new dialog lists the changelog from the footer version and the help modal", async ({
+test("what's new dialog lists the changelog from the header version and the help modal", async ({
   page,
 }) => {
   await fixture(page);
-  await page.getByRole('button', { name: "What's new in this version" }).click();
+  await page.locator('header').getByRole('button', { name: "What's new in this version" }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText('installed')).toBeVisible();

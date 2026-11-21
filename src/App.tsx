@@ -281,7 +281,7 @@ export default function App() {
       else forgetAccount(provider, username);
       setLogin(undefined);
       await refreshStatus();
-      setNotice(`${names[provider]} connected. Your session is remembered in this browser.`);
+
       if (tab === provider) await loadActivities(provider);
     } catch (e) {
       setLoginError(errorMessage(e));
@@ -529,7 +529,13 @@ export default function App() {
               </span>
             </button>
             <div className="top-actions">
-              <span className="environment">v{__APP_VERSION__}</span>
+              <button
+                className="environment text-button"
+                aria-label="What's new in this version"
+                onClick={() => setChangelogOpen(true)}
+              >
+                v{__APP_VERSION__}
+              </button>
               <a
                 className="github-link"
                 href="https://github.com/albertjohannes-id/igpsport-hub"

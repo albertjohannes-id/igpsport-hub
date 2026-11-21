@@ -57,6 +57,12 @@ export function AccountField({
           className="recent-account-list"
           role="group"
           aria-label="Recent accounts"
+          onMouseDown={(event) => {
+            // Keep input focus until the suggestion click is handled, including in Safari.
+            if (event.target instanceof Element && event.target.closest('button')) {
+              event.preventDefault();
+            }
+          }}
         >
           <span className="form-note">Recent accounts</span>
           {matches.map((account) => (

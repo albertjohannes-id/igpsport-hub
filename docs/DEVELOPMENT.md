@@ -8,7 +8,7 @@
 2. `npm ci` installs locked frontend/build/test tools.
 3. `python3 -m venv .venv`, then `.venv/bin/pip install -r requirements-trial.lock.txt`.
 4. The local iGPSPORT adapter imports `sync_igpsport_to_garmin` from the isolated `upstream-trial/` checkout, evaluated from `hmqgg/iGPSport2Garmin` commit `5a5f635491468cc63943a44db52d2d62a53b2054`. Do not run its automatic-sync entry point. A reusable license has not been confirmed; resolve permission or replace this adapter before distribution. Do not silently fetch a different revision.
-5. `npx playwright install chromium` installs the test browser.
+5. `npx playwright install chromium webkit` installs the test browsers.
 6. `npm run dev:all` runs the local API and hot-reload frontend. `npm start` builds and serves the production/PWA version at the same origin.
 
 No Cloudflare account is needed for local work or `npm run cf:check`. `npm run preview` starts the Worker preview, which deliberately cannot access local sessions. Deployment requires a separate explicit decision and Cloudflare credentials.

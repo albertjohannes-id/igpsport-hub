@@ -66,7 +66,7 @@ npm run format:check
 npm audit
 ```
 
-Browser tests need `npx playwright install chromium` once. `PW_CHANNEL=chrome npm run test:ui` can use installed Chrome instead. Tests do not upload real activities.
+Browser tests need `npx playwright install chromium webkit` once. `PW_CHANNEL=chrome npm run test:ui` can use installed Chrome instead. Tests do not upload real activities.
 
 ## Documentation
 

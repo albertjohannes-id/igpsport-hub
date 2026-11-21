@@ -31,13 +31,13 @@ Disconnect deletes that browser's provider cookie and any pending MFA. It does n
 4. Open a different browser/profile: connections and history must be empty. Reconnecting the same accounts in that second profile does not copy the first profile's history.
 5. Disconnect a provider in the first browser and reload: that connection should be removed there. Clearing all site data removes both connections and local history.
 
-Tests use synthetic tokens and mocked providers, never real uploads. Run `npm run test:python`, `npm run test:ui`, and `npm run build`. Physical iPhone/Android testing and a Workers-compatible provider implementation remain follow-up work; localhost on a phone refers to the phone, not this Mac.
+Tests use synthetic tokens and mocked providers, never real uploads. Install the UI test browsers with `npx playwright install chromium webkit`. Run `npm run test:python`, `npm run test:ui`, and `npm run build`. Physical iPhone/Android testing and a Workers-compatible provider implementation remain follow-up work; localhost on a phone refers to the phone, not this Mac.
 
 References: [authenticated encryption API](https://cryptography.io/en/latest/hazmat/primitives/aead/), [cookie attributes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie).
 
 ## Recent login accounts
 
-The email/username field offers separate recent-account lists for iGPSPORT and Garmin. Clicking or focusing the field opens suggestions, typing filters them, and a new account can always be entered. Use Tab to reach suggestion and removal buttons; Escape closes the suggestions before closing the dialog.
+The email/username field offers separate recent-account lists for iGPSPORT and Garmin. Clicking or focusing the field opens suggestions, typing filters them, and a new account can always be entered. Selecting a suggestion fills the email/username field on mouse, touch and keyboard input. The remember-account checkbox sits beside its label; retention details remain in this documentation. Use Tab to reach suggestion and removal buttons; Escape closes the suggestions before closing the dialog.
 
 With **Remember account on this device** checked (the default), a successful login saves the identifier and last-successful-login timestamp in `localStorage` under `apex-recent-accounts`. Garmin is saved only after MFA succeeds. Each provider keeps at most five accounts, newest first. Passwords, MFA codes and session tokens are never included. Failed attempts do not save or refresh an entry. Unchecking the option removes that identifier after a successful connection.
 

@@ -168,16 +168,6 @@ export function Home() {
 
       <footer>
         <span>No automatic syncing. You're in control.</span>
-        <span>
-          <button
-            className="text-button"
-            aria-label="What's new in this version"
-            onClick={app.openChangelog}
-          >
-            iGPSPORT Hub v{app.version}
-          </button>{' '}
-          · Unofficial integration
-        </span>
       </footer>
     </>
   );

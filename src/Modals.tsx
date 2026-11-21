@@ -95,12 +95,8 @@ export function Modals() {
                     checked={app.rememberUsername}
                     onChange={(event) => app.setRememberUsername(event.target.checked)}
                   />
-                  Remember account on this device
+                  <span>Remember account on this device</span>
                 </label>
-                <p className="form-note">
-                  Remembers your email or username only, for 90 days after a successful login.
-                  Uncheck to forget this account after connecting.
-                </p>
                 <label>
                   Password
                   <span className="password-field">

@@ -4,6 +4,9 @@ Dates are UTC. Each entry matches a git tag (`v0.4.3` etc.) and a GitHub release
 
 ## Unreleased
 
+- Fixed recent-account selection when pointer clicks blur the input, and kept the remember-account checkbox beside its label on narrow screens.
+- Removed login success banners and the remember-account helper paragraph. The header version now opens the changelog; removed the duplicate footer version and unofficial-integration label.
+
 - Added separate recent-account suggestions for iGPSPORT and Garmin, with filtering, individual removal, clear-all, and an optional 90-day remember-account setting. Only successful logins save identifiers; passwords and MFA codes are never included.
 
 ## 0.4.4 — 2026-11-18
